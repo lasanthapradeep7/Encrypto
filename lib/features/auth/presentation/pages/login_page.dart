@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/auth/presentation/pages/signup_page.dart';
+import 'package:encrypto/shared/widgets/auth/auth_layout.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -10,192 +12,170 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
+  bool _rememberMe = true;
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF03050B),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 36),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 26),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Hello !',
-                    style: TextStyle(
-                      color: Color(0xFFF5F7FA),
-                      fontSize: 36,
-                      fontWeight: FontWeight.w700,
+      body: AuthBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight:
+                    MediaQuery.sizeOf(context).height -
+                    MediaQuery.paddingOf(context).vertical,
+              ),
+              child: Column(
+                children: [
+                  const AuthTitleBlock(
+                    kicker: 'Welcome back',
+                    title: 'Sign in',
+                    subtitle:
+                        'Access your encrypted vault with biometric shortcuts or your password.',
+                  ),
+                  AuthPanel(
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Quick access', style: textTheme.headlineMedium),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: const [
+                              Expanded(
+                                child: _BiometricOption(
+                                  icon: Icons.face_unlock_outlined,
+                                  label: 'Face ID',
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: _BiometricOption(
+                                  icon: Icons.fingerprint,
+                                  label: 'Fingerprint',
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 22),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Divider(
+                                  color: AppColors.border.withValues(
+                                    alpha: 0.9,
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                                child: Text(
+                                  'or sign in with credentials',
+                                  style: textTheme.bodyMedium,
+                                ),
+                              ),
+                              Expanded(
+                                child: Divider(
+                                  color: AppColors.border.withValues(
+                                    alpha: 0.9,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          AuthInputField(
+                            hint: 'Email or username',
+                            prefix: Icons.person_outline_rounded,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 12),
+                          AuthInputField(
+                            hint: 'Password',
+                            prefix: Icons.lock_outline_rounded,
+                            obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            suffix: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Transform.scale(
+                                scale: 0.92,
+                                child: Checkbox(
+                                  value: _rememberMe,
+                                  onChanged: (value) {
+                                    if (value == null) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      _rememberMe = value;
+                                    });
+                                  },
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  'Keep me signed in on this device',
+                                  style: textTheme.bodyMedium,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {},
+                                child: const Text('Forgot password?'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (_formKey.currentState?.validate() ?? false) {}
+                            },
+                            child: const Text('Log in securely'),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('New here?', style: textTheme.bodyLarge),
+                              TextButton(
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const SignUpPage(),
+                                  ),
+                                ),
+                                child: const Text('Create account'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(26, 6, 26, 26),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Welcome to Encrypto',
-                    style: TextStyle(
-                      color: Color(0xFFF5F7FA),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF1F1F1),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(34)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 24, 22, 28),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Login',
-                        style: TextStyle(
-                          color: Color(0xFF171A1F),
-                          fontSize: 36,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: const [
-                          Expanded(
-                            child: _BiometricOption(
-                              icon: Icons.face_retouching_natural_outlined,
-                              label: 'Face recognition',
-                            ),
-                          ),
-                          SizedBox(width: 14),
-                          Expanded(
-                            child: _BiometricOption(
-                              icon: Icons.fingerprint,
-                              label: 'Fingerprint scan',
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 22),
-                      const Row(
-                        children: [
-                          Expanded(child: Divider(color: Color(0xFFB7B7B7))),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              'Or Login with',
-                              style: TextStyle(
-                                color: Color(0xFF55595E),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          Expanded(child: Divider(color: Color(0xFFB7B7B7))),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      const _AppInputField(
-                        hint: 'Username',
-                        prefix: Icons.person_outline,
-                      ),
-                      const SizedBox(height: 14),
-                      _AppInputField(
-                        hint: 'Password',
-                        prefix: Icons.lock_outline,
-                        obscureText: _obscurePassword,
-                        suffix: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: const Color(0xFF4C4C4C),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          'Forgot Password',
-                          style: TextStyle(
-                            color: Color(0xFF3A3A3A),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF090B11),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                          ),
-                          child: const Text(
-                            'Log In',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Don\'t have an account?',
-                            style: TextStyle(
-                              color: Color(0xFF1B1B1B),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const SignUpPage(),
-                              ),
-                            ),
-                            child: const Text(
-                              'Sign up',
-                              style: TextStyle(
-                                color: Color(0xFF0E82FF),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -211,74 +191,28 @@ class _BiometricOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
-      height: 116,
+      height: 96,
       decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF4A4A4A)),
+        color: AppColors.inputFill,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 44, color: const Color(0xFF171A1F)),
-          const SizedBox(height: 8),
+          Icon(icon, size: 30, color: AppColors.accentDark),
+          const SizedBox(height: 6),
           Text(
             label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF25282E),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AppInputField extends StatelessWidget {
-  const _AppInputField({
-    required this.hint,
-    required this.prefix,
-    this.obscureText = false,
-    this.suffix,
-  });
-
-  final String hint;
-  final IconData prefix;
-  final bool obscureText;
-  final Widget? suffix;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        isDense: true,
-        filled: true,
-        fillColor: const Color(0xFFF1F1F1),
-        hintText: hint,
-        hintStyle: const TextStyle(
-          color: Color(0xFF1F1F1F),
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
-        ),
-        prefixIcon: Icon(prefix, color: const Color(0xFF414141), size: 22),
-        suffixIcon: suffix,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
-          borderSide: const BorderSide(color: Color(0xFF6A6A6A), width: 1.2),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
-          borderSide: const BorderSide(color: Color(0xFF21262F), width: 1.3),
-        ),
       ),
     );
   }

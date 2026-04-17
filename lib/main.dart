@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/auth/presentation/pages/splash_page.dart';
 
 void main() {
@@ -13,10 +14,7 @@ class EncryptoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Encrypto',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF05070D),
-      ),
+      theme: AppTheme.light,
       home: const SplashPage(),
     );
   }
