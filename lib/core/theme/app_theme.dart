@@ -13,6 +13,7 @@ class AppColors {
   static const Color border = Color(0xFFD8DFEF);
   static const Color accent = Color(0xFF2F6BFF);
   static const Color accentDark = Color(0xFF1947C8);
+  static const Color accentSoft = Color(0xFFDCE6FF);
   static const Color onAccent = Colors.white;
 }
 
@@ -24,15 +25,14 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      colorScheme:
-          ColorScheme.fromSeed(
-            seedColor: AppColors.accent,
-            brightness: Brightness.light,
-          ).copyWith(
-            primary: AppColors.accent,
-            onPrimary: AppColors.onAccent,
-            surface: AppColors.panel,
-          ),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.accent,
+        brightness: Brightness.light,
+      ).copyWith(
+        primary: AppColors.accent,
+        onPrimary: AppColors.onAccent,
+        surface: AppColors.panel,
+      ),
       scaffoldBackgroundColor: AppColors.backgroundStart,
       textTheme: textTheme.copyWith(
         headlineLarge: textTheme.headlineLarge?.copyWith(
@@ -53,10 +53,15 @@ class AppTheme {
           color: AppColors.textSecondary,
           height: 1.4,
         ),
+        labelLarge: textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.1,
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.inputFill,
+        floatingLabelBehavior: FloatingLabelBehavior.never,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 16,
@@ -77,13 +82,36 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: AppColors.accent, width: 1.6),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFCC3D3D), width: 1.4),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFCC3D3D), width: 1.6),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          minimumSize: const Size.fromHeight(54),
+          minimumSize: const Size.fromHeight(52),
           backgroundColor: AppColors.accent,
           foregroundColor: AppColors.onAccent,
           elevation: 0,
+          disabledBackgroundColor: AppColors.border,
+          disabledForegroundColor: AppColors.textSecondary,
+          textStyle: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(52),
+          foregroundColor: AppColors.onAccent,
+          side: const BorderSide(color: Colors.white, width: 1.4),
           textStyle: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
           ),
@@ -97,6 +125,17 @@ class AppTheme {
           foregroundColor: AppColors.accentDark,
           textStyle: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        side: const BorderSide(color: AppColors.border, width: 1.2),
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppColors.accent;
+          }
+          return Colors.white;
+        }),
+        checkColor: const WidgetStatePropertyAll(Colors.white),
       ),
     );
   }

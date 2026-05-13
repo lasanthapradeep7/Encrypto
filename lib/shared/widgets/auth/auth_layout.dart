@@ -49,14 +49,27 @@ class AuthPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-      decoration: const BoxDecoration(
-        color: AppColors.panel,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+          decoration: const BoxDecoration(
+            color: AppColors.panel,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x1F111827),
+                blurRadius: 24,
+                offset: Offset(0, -8),
+              ),
+            ],
+          ),
+          child: child,
+        ),
       ),
-      child: child,
     );
   }
 }
@@ -113,6 +126,8 @@ class AuthInputField extends StatelessWidget {
     this.obscureText = false,
     this.suffix,
     this.textInputAction,
+    this.autofillHints,
+    this.validator,
   });
 
   final String hint;
@@ -121,6 +136,8 @@ class AuthInputField extends StatelessWidget {
   final bool obscureText;
   final Widget? suffix;
   final TextInputAction? textInputAction;
+  final Iterable<String>? autofillHints;
+  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +145,8 @@ class AuthInputField extends StatelessWidget {
       keyboardType: keyboardType,
       obscureText: obscureText,
       textInputAction: textInputAction,
+      autofillHints: autofillHints,
+      validator: validator,
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(prefix, color: AppColors.textSecondary),

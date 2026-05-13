@@ -25,6 +25,7 @@ class _SignUpPageState extends State<SignUpPage> {
       body: AuthBackground(
         child: SafeArea(
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 minHeight:
@@ -42,6 +43,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   AuthPanel(
                     child: Form(
                       key: _formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -50,17 +52,36 @@ class _SignUpPageState extends State<SignUpPage> {
                             style: textTheme.headlineMedium,
                           ),
                           const SizedBox(height: 16),
-                          const AuthInputField(
+                          AuthInputField(
                             hint: 'Username',
                             prefix: Icons.person_outline_rounded,
                             textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.username],
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Choose a username';
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 12),
-                          const AuthInputField(
+                          AuthInputField(
                             hint: 'Email',
                             prefix: Icons.mail_outline_rounded,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.email],
+                            validator: (value) {
+                              final input = value?.trim() ?? '';
+                              if (input.isEmpty) {
+                                return 'Enter your email';
+                              }
+                              final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                              if (!emailRegex.hasMatch(input)) {
+                                return 'Enter a valid email address';
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 12),
                           AuthInputField(
@@ -68,6 +89,16 @@ class _SignUpPageState extends State<SignUpPage> {
                             prefix: Icons.lock_outline_rounded,
                             obscureText: _obscurePassword,
                             textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.newPassword],
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Create a password';
+                              }
+                              if (value.length < 8) {
+                                return 'Use at least 8 characters';
+                              }
+                              return null;
+                            },
                             suffix: IconButton(
                               onPressed: () {
                                 setState(() {
@@ -88,6 +119,13 @@ class _SignUpPageState extends State<SignUpPage> {
                             prefix: Icons.verified_user_outlined,
                             obscureText: _obscureConfirm,
                             textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.newPassword],
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Confirm your password';
+                              }
+                              return null;
+                            },
                             suffix: IconButton(
                               onPressed: () {
                                 setState(() {
@@ -103,11 +141,24 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const AuthInputField(
+                          AuthInputField(
                             hint: 'Phone number',
                             prefix: Icons.phone_outlined,
                             keyboardType: TextInputType.phone,
                             textInputAction: TextInputAction.done,
+                            autofillHints: const [
+                              AutofillHints.telephoneNumber,
+                            ],
+                            validator: (value) {
+                              final input = value?.trim() ?? '';
+                              if (input.isEmpty) {
+                                return 'Enter your phone number';
+                              }
+                              if (input.length < 8) {
+                                return 'Phone number is too short';
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 14),
                           Row(
@@ -143,7 +194,9 @@ class _SignUpPageState extends State<SignUpPage> {
                             onPressed: _agreeTerms
                                 ? () {
                                     if (_formKey.currentState?.validate() ??
-                                        false) {}
+                                        false) {
+                                      FocusScope.of(context).unfocus();
+                                    }
                                   }
                                 : null,
                             child: const Text('Create secure account'),

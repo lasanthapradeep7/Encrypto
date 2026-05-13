@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
+import 'package:encrypto/features/encryption/presentation/pages/encryption_shell.dart';
 import 'package:encrypto/features/auth/presentation/pages/signup_page.dart';
 import 'package:encrypto/shared/widgets/auth/auth_layout.dart';
 
@@ -24,6 +25,7 @@ class _LoginPageState extends State<LoginPage> {
       body: AuthBackground(
         child: SafeArea(
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 minHeight:
@@ -41,6 +43,7 @@ class _LoginPageState extends State<LoginPage> {
                   AuthPanel(
                     child: Form(
                       key: _formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -97,6 +100,16 @@ class _LoginPageState extends State<LoginPage> {
                             prefix: Icons.person_outline_rounded,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
+                            autofillHints: const [
+                              AutofillHints.username,
+                              AutofillHints.email,
+                            ],
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Enter your email or username';
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 12),
                           AuthInputField(
@@ -104,6 +117,16 @@ class _LoginPageState extends State<LoginPage> {
                             prefix: Icons.lock_outline_rounded,
                             obscureText: _obscurePassword,
                             textInputAction: TextInputAction.done,
+                            autofillHints: const [AutofillHints.password],
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Enter your password';
+                              }
+                              if (value.length < 6) {
+                                return 'Password must be at least 6 characters';
+                              }
+                              return null;
+                            },
                             suffix: IconButton(
                               onPressed: () {
                                 setState(() {
@@ -150,7 +173,14 @@ class _LoginPageState extends State<LoginPage> {
                           const SizedBox(height: 10),
                           ElevatedButton(
                             onPressed: () {
-                              if (_formKey.currentState?.validate() ?? false) {}
+                              if (_formKey.currentState?.validate() ?? false) {
+                                FocusScope.of(context).unfocus();
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const EncryptionShell(),
+                                  ),
+                                );
+                              }
                             },
                             child: const Text('Log in securely'),
                           ),

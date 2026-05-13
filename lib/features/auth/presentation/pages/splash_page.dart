@@ -113,6 +113,15 @@ class _SplashPageState extends State<SplashPage>
                       color: Colors.white.withValues(alpha: 0.84),
                     ),
                   ),
+                  const SizedBox(height: 26),
+                  SizedBox(
+                    width: 26,
+                    height: 26,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.4,
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
                 ],
               ),
             ),
