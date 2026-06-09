@@ -23,10 +23,7 @@ class EncryptionContentContainer extends StatelessWidget {
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 540),
-        child: Padding(
-          padding: padding,
-          child: child,
-        ),
+        child: Padding(padding: padding, child: child),
       ),
     );
   }
@@ -77,10 +74,16 @@ class EncryptoTopBar extends StatelessWidget {
     super.key,
     this.showBackButton = false,
     this.onBackPressed,
+    this.onProfilePressed,
+    this.onNotificationsPressed,
+    this.onSettingsPressed,
   });
 
   final bool showBackButton;
   final VoidCallback? onBackPressed;
+  final VoidCallback? onProfilePressed;
+  final VoidCallback? onNotificationsPressed;
+  final VoidCallback? onSettingsPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -125,19 +128,22 @@ class EncryptoTopBar extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              const _TopActionIcon(
+              _TopActionIcon(
                 icon: Icons.person_outline_rounded,
                 tooltip: 'Profile',
+                onTap: onProfilePressed,
               ),
               const SizedBox(width: 6),
-              const _TopActionIcon(
+              _TopActionIcon(
                 icon: Icons.notifications_none_rounded,
                 tooltip: 'Notifications',
+                onTap: onNotificationsPressed,
               ),
               const SizedBox(width: 6),
-              const _TopActionIcon(
+              _TopActionIcon(
                 icon: Icons.settings_outlined,
                 tooltip: 'Settings',
+                onTap: onSettingsPressed,
               ),
             ],
           ),
@@ -242,17 +248,17 @@ class _BrandMark extends StatelessWidget {
           ),
         ],
       ),
-      child: const Icon(Icons.shield_moon_rounded, color: Colors.white, size: 17),
+      child: const Icon(
+        Icons.shield_moon_rounded,
+        color: Colors.white,
+        size: 17,
+      ),
     );
   }
 }
 
 class _TopActionIcon extends StatelessWidget {
-  const _TopActionIcon({
-    required this.icon,
-    required this.tooltip,
-    this.onTap,
-  });
+  const _TopActionIcon({required this.icon, required this.tooltip, this.onTap});
 
   final IconData icon;
   final String tooltip;
@@ -277,7 +283,11 @@ class _TopActionIcon extends StatelessWidget {
               width: 0.8,
             ),
           ),
-          child: Icon(icon, color: Colors.white.withValues(alpha: 0.9), size: 18),
+          child: Icon(
+            icon,
+            color: Colors.white.withValues(alpha: 0.9),
+            size: 18,
+          ),
         ),
       ),
     );
@@ -325,8 +335,7 @@ class _BottomNavButton extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               style: TextStyle(
                 fontSize: 10,
-                fontWeight:
-                    selected ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: selected
                     ? AppColors.accentDark
                     : const Color(0xFF9CA3AF),
@@ -375,10 +384,7 @@ class _CenterNavButton extends StatelessWidget {
                   colors: [Color(0xFFE8EDF8), Color(0xFFD4DCF0)],
                 ),
           shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.white,
-            width: 4,
-          ),
+          border: Border.all(color: Colors.white, width: 4),
           boxShadow: selected ? AppShadows.navCenter : AppShadows.card,
         ),
         child: Icon(

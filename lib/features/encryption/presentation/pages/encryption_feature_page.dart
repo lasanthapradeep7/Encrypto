@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -16,10 +15,16 @@ class EncryptionFeaturePage extends StatefulWidget {
     super.key,
     required this.mode,
     required this.onBackPressed,
+    required this.onOpenProfile,
+    required this.onOpenNotifications,
+    required this.onOpenSettings,
   });
 
   final EncryptionMode mode;
   final VoidCallback onBackPressed;
+  final VoidCallback onOpenProfile;
+  final VoidCallback onOpenNotifications;
+  final VoidCallback onOpenSettings;
 
   @override
   State<EncryptionFeaturePage> createState() => _EncryptionFeaturePageState();
@@ -87,6 +92,9 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
         EncryptoTopBar(
           showBackButton: true,
           onBackPressed: widget.onBackPressed,
+          onProfilePressed: widget.onOpenProfile,
+          onNotificationsPressed: widget.onOpenNotifications,
+          onSettingsPressed: widget.onOpenSettings,
         ),
         Expanded(
           child: AnimatedSwitcher(
@@ -103,21 +111,21 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
             ),
             child: switch (_stage) {
               _WorkflowStage.setup => _SetupView(
-                  key: const ValueKey('setup'),
-                  mode: _activeMode,
-                  onModeChanged: _setMode,
-                  onStartPressed: _startWorkflow,
-                ),
+                key: const ValueKey('setup'),
+                mode: _activeMode,
+                onModeChanged: _setMode,
+                onStartPressed: _startWorkflow,
+              ),
               _WorkflowStage.processing => _ProcessingView(
-                  key: const ValueKey('processing'),
-                  mode: _activeMode,
-                  onCancelPressed: _cancelWorkflow,
-                ),
+                key: const ValueKey('processing'),
+                mode: _activeMode,
+                onCancelPressed: _cancelWorkflow,
+              ),
               _WorkflowStage.success => _SuccessView(
-                  key: const ValueKey('success'),
-                  mode: _activeMode,
-                  onRepeatPressed: _resetFlow,
-                ),
+                key: const ValueKey('success'),
+                mode: _activeMode,
+                onRepeatPressed: _resetFlow,
+              ),
             },
           ),
         ),
@@ -170,12 +178,15 @@ class _SetupView extends StatelessWidget {
             ],
             const SizedBox(height: 22),
             switch (mode) {
-              EncryptionMode.encrypt =>
-                _EncryptSetupContent(onStartPressed: onStartPressed),
-              EncryptionMode.decrypt =>
-                _DecryptSetupContent(onStartPressed: onStartPressed),
-              EncryptionMode.steganography =>
-                _SteganographySetupContent(onStartPressed: onStartPressed),
+              EncryptionMode.encrypt => _EncryptSetupContent(
+                onStartPressed: onStartPressed,
+              ),
+              EncryptionMode.decrypt => _DecryptSetupContent(
+                onStartPressed: onStartPressed,
+              ),
+              EncryptionMode.steganography => _SteganographySetupContent(
+                onStartPressed: onStartPressed,
+              ),
             },
           ],
         ),
@@ -194,7 +205,6 @@ class _EncryptSetupContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -206,7 +216,10 @@ class _EncryptSetupContent extends StatelessWidget {
           icon: Icons.image_rounded,
         ),
         const SizedBox(height: 14),
-        _SectionLabel(label: 'Encrypted file', icon: Icons.file_present_rounded),
+        _SectionLabel(
+          label: 'Encrypted file',
+          icon: Icons.file_present_rounded,
+        ),
         const SizedBox(height: 10),
         const _UploadCard(
           label: 'Upload Encrypted File',
@@ -214,10 +227,7 @@ class _EncryptSetupContent extends StatelessWidget {
           icon: Icons.lock_outlined,
         ),
         const SizedBox(height: 22),
-        _SectionLabel(
-          label: 'Encryption method',
-          icon: Icons.settings_rounded,
-        ),
+        _SectionLabel(label: 'Encryption method', icon: Icons.settings_rounded),
         const SizedBox(height: 12),
         const _OptionRow(
           label: 'Biometric',
@@ -237,7 +247,10 @@ class _EncryptSetupContent extends StatelessWidget {
           color: Color(0xFF34D399),
         ),
         const SizedBox(height: 22),
-        _GradientCTAButton(label: 'Start Encryption', onPressed: onStartPressed),
+        _GradientCTAButton(
+          label: 'Start Encryption',
+          onPressed: onStartPressed,
+        ),
       ],
     );
   }
@@ -322,8 +335,7 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
         const SizedBox(height: 14),
         // Warning banner
         _WarningBanner(
-          text:
-              'After 3 wrong attempts, you will be automatically logged out.',
+          text: 'After 3 wrong attempts, you will be automatically logged out.',
         ),
         const SizedBox(height: 14),
         // Checkbox for hidden data
@@ -346,9 +358,7 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
                     }
                     return Colors.white.withValues(alpha: 0.1);
                   }),
-                  side: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.3),
-                  ),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
               ),
               Expanded(
@@ -363,7 +373,10 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
           ),
         ),
         const SizedBox(height: 16),
-        _GradientCTAButton(label: 'Decrypt File', onPressed: widget.onStartPressed),
+        _GradientCTAButton(
+          label: 'Decrypt File',
+          onPressed: widget.onStartPressed,
+        ),
       ],
     );
   }
@@ -382,7 +395,10 @@ class _SteganographySetupContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionLabel(label: 'Hide data in image', icon: Icons.hide_image_rounded),
+        _SectionLabel(
+          label: 'Hide data in image',
+          icon: Icons.hide_image_rounded,
+        ),
         const SizedBox(height: 10),
         const _UploadCard(
           label: 'Upload Cover Image',
@@ -412,8 +428,8 @@ class _SteganographySetupContent extends StatelessWidget {
               child: Text(
                 'Retrieve hidden data',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.5),
-                    ),
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
               ),
             ),
             Expanded(
@@ -547,9 +563,7 @@ class _ProcessingView extends StatelessWidget {
                 label: const Text('Cancel'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white.withValues(alpha: 0.8),
-                  side: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.25),
-                  ),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -610,8 +624,7 @@ class _SuccessViewState extends State<_SuccessView> {
             const SizedBox(height: 16),
             ShaderMask(
               blendMode: BlendMode.srcIn,
-              shaderCallback: (b) =>
-                  AppGradients.success.createShader(b),
+              shaderCallback: (b) => AppGradients.success.createShader(b),
               child: Text(
                 '100%',
                 style: textTheme.displayLarge?.copyWith(
@@ -715,8 +728,8 @@ class _SuccessViewState extends State<_SuccessView> {
                   Text(
                     'Always upload to cloud',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
                   ),
                 ],
               ),
@@ -850,9 +863,7 @@ class _SegmentedModeControl extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.12),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Row(
         children: [
@@ -920,8 +931,7 @@ class _SegmentedButton extends StatelessWidget {
                   color: selected
                       ? Colors.white
                       : Colors.white.withValues(alpha: 0.5),
-                  fontWeight:
-                      selected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   fontSize: 13,
                 ),
               ),
@@ -997,13 +1007,11 @@ class _OptionRowState extends State<_OptionRow> {
               child: Text(
                 widget.label,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: _selected
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.75),
-                      fontWeight: _selected
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                    ),
+                  color: _selected
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.75),
+                  fontWeight: _selected ? FontWeight.w600 : FontWeight.w400,
+                ),
               ),
             ),
             AnimatedContainer(
@@ -1049,8 +1057,10 @@ class _ProgressStep extends StatelessWidget {
     final (icon, color) = switch (state) {
       _StepState.done => (Icons.check_circle_rounded, AppColors.success),
       _StepState.active => (Icons.radio_button_on_rounded, AppColors.accent),
-      _StepState.pending => (Icons.radio_button_off_rounded,
-          Colors.white.withValues(alpha: 0.3)),
+      _StepState.pending => (
+        Icons.radio_button_off_rounded,
+        Colors.white.withValues(alpha: 0.3),
+      ),
     };
 
     return Row(
@@ -1109,19 +1119,15 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 14,
-          color: Colors.white.withValues(alpha: 0.5),
-        ),
+        Icon(icon, size: 14, color: Colors.white.withValues(alpha: 0.5)),
         const SizedBox(width: 6),
         Text(
           label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.65),
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.3,
-              ),
+            color: Colors.white.withValues(alpha: 0.65),
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.3,
+          ),
         ),
       ],
     );
@@ -1205,26 +1211,20 @@ class _WarningBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.warning.withValues(alpha: 0.35),
-        ),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            color: AppColors.warning,
-            size: 16,
-          ),
+          Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 16),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.warning,
-                    fontWeight: FontWeight.w500,
-                  ),
+                color: AppColors.warning,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -1261,13 +1261,15 @@ class _AnimatedProcessingIllustrationState
       duration: const Duration(milliseconds: 2400),
     )..repeat();
 
-    _rotationAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    _rotationAnimation = Tween<double>(
+      begin: 0,
+      end: 2 * math.pi,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
 
-    _pulseAnimation = Tween<double>(begin: 0.9, end: 1.1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _pulseAnimation = Tween<double>(
+      begin: 0.9,
+      end: 1.1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -1289,7 +1291,7 @@ class _AnimatedProcessingIllustrationState
       width: 180,
       child: AnimatedBuilder(
         animation: _controller,
-        builder: (_, __) {
+        builder: (_, _) {
           return Stack(
             alignment: Alignment.center,
             children: [
@@ -1316,10 +1318,7 @@ class _AnimatedProcessingIllustrationState
                   height: 130,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.transparent,
-                      width: 0,
-                    ),
+                    border: Border.all(color: Colors.transparent, width: 0),
                   ),
                   child: CustomPaint(
                     painter: _ArcPainter(
@@ -1343,11 +1342,7 @@ class _AnimatedProcessingIllustrationState
                     shape: BoxShape.circle,
                     boxShadow: AppShadows.accentGlow,
                   ),
-                  child: Icon(
-                    illustrationIcon,
-                    color: Colors.white,
-                    size: 44,
-                  ),
+                  child: Icon(illustrationIcon, color: Colors.white, size: 44),
                 ),
               ),
             ],
@@ -1385,9 +1380,10 @@ class _AnimatedSuccessIllustrationState
       duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
 
-    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _pulseAnimation = Tween<double>(
+      begin: 0.95,
+      end: 1.05,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -1403,7 +1399,7 @@ class _AnimatedSuccessIllustrationState
       width: 180,
       child: AnimatedBuilder(
         animation: _controller,
-        builder: (_, __) {
+        builder: (_, _) {
           return Stack(
             alignment: Alignment.center,
             children: [
@@ -1526,10 +1522,7 @@ class _DashedBorderPainter extends CustomPainter {
       double distance = 0;
       while (distance < metric.length) {
         final end = (distance + dashLength).clamp(0.0, metric.length);
-        canvas.drawPath(
-          metric.extractPath(distance, end),
-          paint,
-        );
+        canvas.drawPath(metric.extractPath(distance, end), paint);
         distance += dashLength + gapLength;
       }
     }

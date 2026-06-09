@@ -5,11 +5,6 @@ import 'package:encrypto/core/theme/app_theme.dart';
 
 void main() {
   testWidgets('LoginPage renders without exceptions', (WidgetTester tester) async {
-    FlutterError.onError = (FlutterErrorDetails details) {
-      print('FLUTTER ERROR: ${details.exception}');
-      print(details.stack);
-    };
-    
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
@@ -17,7 +12,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    
+
     expect(find.byType(LoginPage), findsOneWidget);
   });
 }

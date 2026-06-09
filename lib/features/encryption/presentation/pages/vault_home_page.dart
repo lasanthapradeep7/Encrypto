@@ -8,10 +8,16 @@ class VaultHomePage extends StatelessWidget {
     super.key,
     required this.onOpenWorkflow,
     required this.onOpenSteganographyWorkflow,
+    required this.onOpenProfile,
+    required this.onOpenNotifications,
+    required this.onOpenSettings,
   });
 
   final VoidCallback onOpenWorkflow;
   final VoidCallback onOpenSteganographyWorkflow;
+  final VoidCallback onOpenProfile;
+  final VoidCallback onOpenNotifications;
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +25,11 @@ class VaultHomePage extends StatelessWidget {
 
     return Column(
       children: [
-        const EncryptoTopBar(),
+        EncryptoTopBar(
+          onProfilePressed: onOpenProfile,
+          onNotificationsPressed: onOpenNotifications,
+          onSettingsPressed: onOpenSettings,
+        ),
         Expanded(
           child: SingleChildScrollView(
             child: EncryptionContentContainer(
@@ -34,10 +44,7 @@ class VaultHomePage extends StatelessWidget {
                         blendMode: BlendMode.srcIn,
                         shaderCallback: (b) =>
                             AppGradients.accentHorizontal.createShader(b),
-                        child: const Icon(
-                          Icons.layers_rounded,
-                          size: 22,
-                        ),
+                        child: const Icon(Icons.layers_rounded, size: 22),
                       ),
                       const SizedBox(width: 10),
                       Column(
@@ -123,10 +130,7 @@ class VaultHomePage extends StatelessWidget {
                               blendMode: BlendMode.srcIn,
                               shaderCallback: (b) =>
                                   AppGradients.accentHorizontal.createShader(b),
-                              child: const Icon(
-                                Icons.bolt_rounded,
-                                size: 16,
-                              ),
+                              child: const Icon(Icons.bolt_rounded, size: 16),
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -221,8 +225,8 @@ class _SummaryRow extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.88),
-                ),
+              color: Colors.white.withValues(alpha: 0.88),
+            ),
           ),
         ),
         ShaderMask(
@@ -233,9 +237,9 @@ class _SummaryRow extends StatelessWidget {
           child: Text(
             value,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ],
@@ -317,11 +321,7 @@ class _VaultActionTileState extends State<_VaultActionTile> {
                           ),
                         ],
                 ),
-                child: Icon(
-                  widget.icon,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                child: Icon(widget.icon, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(

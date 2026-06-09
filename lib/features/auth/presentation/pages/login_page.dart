@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/pages/encryption_shell.dart';
@@ -15,8 +16,11 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  final _localAuth = LocalAuthentication();
   bool _obscurePassword = true;
   bool _rememberMe = true;
+  bool _biometricsAvailable = false;
+  bool _authenticating = false;
 
   late final AnimationController _panelController;
   late final Animation<Offset> _panelSlide;
@@ -41,12 +45,85 @@ class _LoginPageState extends State<LoginPage>
       parent: _panelController,
       curve: Curves.easeOut,
     );
+
+    _loadBiometricStatus();
   }
 
   @override
   void dispose() {
     _panelController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadBiometricStatus() async {
+    try {
+      final biometricsAvailable = await _localAuth.canCheckBiometrics;
+      final availableBiometrics = await _localAuth.getAvailableBiometrics();
+      final deviceSupported = await _localAuth.isDeviceSupported();
+
+      if (!mounted) return;
+      setState(() {
+        _biometricsAvailable =
+            biometricsAvailable &&
+            deviceSupported &&
+            availableBiometrics.isNotEmpty;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _biometricsAvailable = false);
+    }
+  }
+
+  Future<void> _authenticateWithBiometrics() async {
+    if (!_biometricsAvailable || _authenticating) {
+      _showAuthMessage('Biometric unlock is not available on this device.');
+      return;
+    }
+
+    setState(() => _authenticating = true);
+
+    try {
+      final authenticated = await _localAuth.authenticate(
+        localizedReason: 'Authenticate to unlock your encrypted vault.',
+        biometricOnly: true,
+        persistAcrossBackgrounding: true,
+      );
+
+      if (!mounted) return;
+      if (authenticated) {
+        _openVault();
+      } else {
+        _showAuthMessage('Biometric authentication was cancelled.');
+      }
+    } catch (_) {
+      if (mounted) {
+        _showAuthMessage('Biometric authentication failed. Use your password.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _authenticating = false);
+      }
+    }
+  }
+
+  void _openVault() {
+    FocusScope.of(context).unfocus();
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder<void>(
+        pageBuilder: (_, _, _) => const EncryptionShell(),
+        transitionsBuilder: (_, anim, _, child) => FadeTransition(
+          opacity: anim,
+          child: child,
+        ),
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+    );
+  }
+
+  void _showAuthMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -106,18 +183,24 @@ class _LoginPageState extends State<LoginPage>
                               ),
                               const SizedBox(height: 14),
                               Row(
-                                children: const [
+                                children: [
                                   Expanded(
                                     child: _BiometricOption(
                                       icon: Icons.face_unlock_outlined,
                                       label: 'Face ID',
+                                      enabled: _biometricsAvailable &&
+                                          !_authenticating,
+                                      onTap: _authenticateWithBiometrics,
                                     ),
                                   ),
-                                  SizedBox(width: 12),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: _BiometricOption(
                                       icon: Icons.fingerprint,
                                       label: 'Fingerprint',
+                                      enabled: _biometricsAvailable &&
+                                          !_authenticating,
+                                      onTap: _authenticateWithBiometrics,
                                     ),
                                   ),
                                 ],
@@ -209,22 +292,7 @@ class _LoginPageState extends State<LoginPage>
                                 onPressed: () {
                                   if (_formKey.currentState?.validate() ??
                                       false) {
-                                    FocusScope.of(context).unfocus();
-                                    Navigator.of(context).pushReplacement(
-                                      PageRouteBuilder<void>(
-                                        pageBuilder: (_, __, ___) =>
-                                            const EncryptionShell(),
-                                        transitionsBuilder:
-                                            (_, anim, __, child) =>
-                                                FadeTransition(
-                                          opacity: anim,
-                                          child: child,
-                                        ),
-                                        transitionDuration: const Duration(
-                                          milliseconds: 400,
-                                        ),
-                                      ),
-                                    );
+                                    _openVault();
                                   }
                                 },
                               ),
@@ -268,10 +336,17 @@ class _LoginPageState extends State<LoginPage>
 // Gradient-border biometric tile
 // ---------------------------------------------------------------------------
 class _BiometricOption extends StatefulWidget {
-  const _BiometricOption({required this.icon, required this.label});
+  const _BiometricOption({
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
+  final bool enabled;
+  final VoidCallback onTap;
 
   @override
   State<_BiometricOption> createState() => _BiometricOptionState();
@@ -283,12 +358,13 @@ class _BiometricOptionState extends State<_BiometricOption> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final enabled = widget.enabled;
 
     return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: () {},
+      onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
+      onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
+      onTapCancel: enabled ? () => setState(() => _pressed = false) : null,
+      onTap: enabled ? widget.onTap : null,
       child: AnimatedScale(
         scale: _pressed ? 0.95 : 1.0,
         duration: const Duration(milliseconds: 120),
@@ -297,9 +373,11 @@ class _BiometricOptionState extends State<_BiometricOption> {
           duration: const Duration(milliseconds: 200),
           height: 100,
           decoration: BoxDecoration(
-            color: _pressed
-                ? AppColors.accentSoft.withValues(alpha: 0.5)
-                : AppColors.inputFill,
+            color: !enabled
+                ? AppColors.inputFill.withValues(alpha: 0.56)
+                : _pressed
+                    ? AppColors.accentSoft.withValues(alpha: 0.5)
+                    : AppColors.inputFill,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: _pressed ? AppColors.accent : AppColors.border,
@@ -328,7 +406,9 @@ class _BiometricOptionState extends State<_BiometricOption> {
               Text(
                 widget.label,
                 style: textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textPrimary,
+                  color: enabled
+                      ? AppColors.textPrimary
+                      : AppColors.textSecondary,
                   fontWeight: FontWeight.w700,
                 ),
               ),

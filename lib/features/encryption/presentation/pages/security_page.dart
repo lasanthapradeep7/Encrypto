@@ -4,9 +4,18 @@ import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
 
 class SecurityPage extends StatelessWidget {
-  const SecurityPage({super.key, required this.onOpenWorkflow});
+  const SecurityPage({
+    super.key,
+    required this.onOpenWorkflow,
+    required this.onOpenProfile,
+    required this.onOpenNotifications,
+    required this.onOpenSettings,
+  });
 
   final VoidCallback onOpenWorkflow;
+  final VoidCallback onOpenProfile;
+  final VoidCallback onOpenNotifications;
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +23,11 @@ class SecurityPage extends StatelessWidget {
 
     return Column(
       children: [
-        const EncryptoTopBar(),
+        EncryptoTopBar(
+          onProfilePressed: onOpenProfile,
+          onNotificationsPressed: onOpenNotifications,
+          onSettingsPressed: onOpenSettings,
+        ),
         Expanded(
           child: SingleChildScrollView(
             child: EncryptionContentContainer(

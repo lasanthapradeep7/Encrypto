@@ -81,8 +81,8 @@ class _SplashPageState extends State<SplashPage>
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         PageRouteBuilder<void>(
-          pageBuilder: (_, __, ___) => const LoginPage(),
-          transitionsBuilder: (_, animation, __, child) => FadeTransition(
+          pageBuilder: (_, _, _) => const LoginPage(),
+          transitionsBuilder: (_, animation, _, child) => FadeTransition(
             opacity: animation,
             child: child,
           ),
@@ -126,7 +126,7 @@ class _SplashPageState extends State<SplashPage>
                           // Outer pulse ring
                           AnimatedBuilder(
                             animation: _pulseAnimation,
-                            builder: (_, __) => Transform.scale(
+                            builder: (_, _) => Transform.scale(
                               scale: _pulseAnimation.value,
                               child: Container(
                                 width: 116,
@@ -145,7 +145,7 @@ class _SplashPageState extends State<SplashPage>
                           // Inner pulse ring
                           AnimatedBuilder(
                             animation: _pulseAnimation,
-                            builder: (_, __) => Transform.scale(
+                            builder: (_, _) => Transform.scale(
                               scale:
                                   1.0 + (_pulseAnimation.value - 1.0) * 0.5,
                               child: Container(
@@ -223,7 +223,7 @@ class _AnimatedDotLoader extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: animation,
-      builder: (_, __) {
+      builder: (_, _) {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(3, (i) {
