@@ -5,6 +5,10 @@ import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/pages/encryption_shell.dart';
 import 'package:encrypto/features/auth/presentation/pages/signup_page.dart';
 import 'package:encrypto/shared/widgets/auth/auth_layout.dart';
+import 'package:encrypto/services/api_service.dart';
+
+final emailController = TextEditingController();
+final passwordController = TextEditingController();
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -34,12 +38,10 @@ class _LoginPageState extends State<LoginPage>
       duration: const Duration(milliseconds: 700),
     )..forward();
 
-    _panelSlide = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _panelController, curve: Curves.easeOutCubic),
-    );
+    _panelSlide = Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _panelController, curve: Curves.easeOutCubic),
+        );
 
     _panelFade = CurvedAnimation(
       parent: _panelController,
@@ -51,6 +53,8 @@ class _LoginPageState extends State<LoginPage>
 
   @override
   void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
     _panelController.dispose();
     super.dispose();
   }
@@ -111,19 +115,17 @@ class _LoginPageState extends State<LoginPage>
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(
         pageBuilder: (_, _, _) => const EncryptionShell(),
-        transitionsBuilder: (_, anim, _, child) => FadeTransition(
-          opacity: anim,
-          child: child,
-        ),
+        transitionsBuilder: (_, anim, _, child) =>
+            FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 400),
       ),
     );
   }
 
   void _showAuthMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -156,8 +158,7 @@ class _LoginPageState extends State<LoginPage>
                       child: AuthPanel(
                         child: Form(
                           key: _formKey,
-                          autovalidateMode:
-                              AutovalidateMode.onUserInteraction,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -166,9 +167,9 @@ class _LoginPageState extends State<LoginPage>
                                 children: [
                                   ShaderMask(
                                     blendMode: BlendMode.srcIn,
-                                    shaderCallback: (b) =>
-                                        AppGradients.accentHorizontal
-                                            .createShader(b),
+                                    shaderCallback: (b) => AppGradients
+                                        .accentHorizontal
+                                        .createShader(b),
                                     child: const Icon(
                                       Icons.bolt_rounded,
                                       size: 18,
@@ -188,7 +189,8 @@ class _LoginPageState extends State<LoginPage>
                                     child: _BiometricOption(
                                       icon: Icons.face_unlock_outlined,
                                       label: 'Face ID',
-                                      enabled: _biometricsAvailable &&
+                                      enabled:
+                                          _biometricsAvailable &&
                                           !_authenticating,
                                       onTap: _authenticateWithBiometrics,
                                     ),
@@ -198,7 +200,8 @@ class _LoginPageState extends State<LoginPage>
                                     child: _BiometricOption(
                                       icon: Icons.fingerprint,
                                       label: 'Fingerprint',
-                                      enabled: _biometricsAvailable &&
+                                      enabled:
+                                          _biometricsAvailable &&
                                           !_authenticating,
                                       onTap: _authenticateWithBiometrics,
                                     ),
@@ -212,6 +215,7 @@ class _LoginPageState extends State<LoginPage>
                               ),
                               const SizedBox(height: 18),
                               AuthInputField(
+                                controller: emailController,
                                 hint: 'Email or username',
                                 prefix: Icons.person_outline_rounded,
                                 keyboardType: TextInputType.emailAddress,
@@ -221,8 +225,7 @@ class _LoginPageState extends State<LoginPage>
                                   AutofillHints.email,
                                 ],
                                 validator: (value) {
-                                  if (value == null ||
-                                      value.trim().isEmpty) {
+                                  if (value == null || value.trim().isEmpty) {
                                     return 'Enter your email or username';
                                   }
                                   return null;
@@ -230,6 +233,7 @@ class _LoginPageState extends State<LoginPage>
                               ),
                               const SizedBox(height: 12),
                               AuthInputField(
+                                controller: passwordController,
                                 hint: 'Password',
                                 prefix: Icons.lock_outline_rounded,
                                 obscureText: _obscurePassword,
@@ -267,9 +271,7 @@ class _LoginPageState extends State<LoginPage>
                                       value: _rememberMe,
                                       onChanged: (value) {
                                         if (value == null) return;
-                                        setState(
-                                          () => _rememberMe = value,
-                                        );
+                                        setState(() => _rememberMe = value);
                                       },
                                     ),
                                   ),
@@ -289,25 +291,50 @@ class _LoginPageState extends State<LoginPage>
                               GradientButton(
                                 label: 'Log in securely',
                                 icon: Icons.lock_open_rounded,
-                                onPressed: () {
-                                  if (_formKey.currentState?.validate() ??
-                                      false) {
+                                onPressed: () async {
+                                  if (!(_formKey.currentState?.validate() ??
+                                      false)) {
+                                    return;
+                                  }
+
+                                  final result = await ApiService.login(
+                                    email: emailController.text.trim(),
+                                    password: passwordController.text,
+                                  );
+
+                                  if (!mounted) return;
+
+                                  if (result["status"] == 200) {
+                                    final token =
+                                        result["body"]["access_token"];
+
+                                    print("JWT TOKEN: $token");
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text("Login Success"),
+                                      ),
+                                    );
+
                                     _openVault();
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          result["body"]["detail"].toString(),
+                                        ),
+                                      ),
+                                    );
                                   }
                                 },
                               ),
                               const SizedBox(height: 16),
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    'New here?',
-                                    style: textTheme.bodyLarge,
-                                  ),
+                                  Text('New here?', style: textTheme.bodyLarge),
                                   TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).push(
+                                    onPressed: () => Navigator.of(context).push(
                                       MaterialPageRoute<void>(
                                         builder: (_) => const SignUpPage(),
                                       ),
@@ -376,8 +403,8 @@ class _BiometricOptionState extends State<_BiometricOption> {
             color: !enabled
                 ? AppColors.inputFill.withValues(alpha: 0.56)
                 : _pressed
-                    ? AppColors.accentSoft.withValues(alpha: 0.5)
-                    : AppColors.inputFill,
+                ? AppColors.accentSoft.withValues(alpha: 0.5)
+                : AppColors.inputFill,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: _pressed ? AppColors.accent : AppColors.border,
@@ -449,9 +476,9 @@ class _GradientDivider extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
         Expanded(

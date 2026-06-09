@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/auth/presentation/pages/login_page.dart';
 import 'package:encrypto/shared/widgets/auth/auth_layout.dart';
+import 'package:encrypto/services/api_service.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -14,7 +15,11 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPageState extends State<SignUpPage>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+  final _phoneController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _agreeTerms = false;
@@ -32,12 +37,10 @@ class _SignUpPageState extends State<SignUpPage>
       duration: const Duration(milliseconds: 700),
     )..forward();
 
-    _panelSlide = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _panelController, curve: Curves.easeOutCubic),
-    );
+    _panelSlide = Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _panelController, curve: Curves.easeOutCubic),
+        );
 
     _panelFade = CurvedAnimation(
       parent: _panelController,
@@ -48,7 +51,12 @@ class _SignUpPageState extends State<SignUpPage>
   @override
   void dispose() {
     _panelController.dispose();
+
     _passwordController.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+
     super.dispose();
   }
 
@@ -101,8 +109,7 @@ class _SignUpPageState extends State<SignUpPage>
                       child: AuthPanel(
                         child: Form(
                           key: _formKey,
-                          autovalidateMode:
-                              AutovalidateMode.onUserInteraction,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -110,9 +117,9 @@ class _SignUpPageState extends State<SignUpPage>
                                 children: [
                                   ShaderMask(
                                     blendMode: BlendMode.srcIn,
-                                    shaderCallback: (b) =>
-                                        AppGradients.accentHorizontal
-                                            .createShader(b),
+                                    shaderCallback: (b) => AppGradients
+                                        .accentHorizontal
+                                        .createShader(b),
                                     child: const Icon(
                                       Icons.person_add_alt_1_rounded,
                                       size: 18,
@@ -127,6 +134,7 @@ class _SignUpPageState extends State<SignUpPage>
                               ),
                               const SizedBox(height: 16),
                               AuthInputField(
+                                controller: _nameController,
                                 hint: 'Username',
                                 prefix: Icons.person_outline_rounded,
                                 textInputAction: TextInputAction.next,
@@ -140,6 +148,7 @@ class _SignUpPageState extends State<SignUpPage>
                               ),
                               const SizedBox(height: 12),
                               AuthInputField(
+                                controller: _emailController,
                                 hint: 'Email',
                                 prefix: Icons.mail_outline_rounded,
                                 keyboardType: TextInputType.emailAddress,
@@ -150,8 +159,9 @@ class _SignUpPageState extends State<SignUpPage>
                                   if (input.isEmpty) {
                                     return 'Enter your email';
                                   }
-                                  final emailRegex =
-                                      RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                                  final emailRegex = RegExp(
+                                    r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                                  );
                                   if (!emailRegex.hasMatch(input)) {
                                     return 'Enter a valid email address';
                                   }
@@ -160,10 +170,10 @@ class _SignUpPageState extends State<SignUpPage>
                               ),
                               const SizedBox(height: 12),
                               AuthInputField(
+                                controller: _passwordController,
                                 hint: 'Password',
                                 prefix: Icons.lock_outline_rounded,
                                 obscureText: _obscurePassword,
-                                controller: _passwordController,
                                 textInputAction: TextInputAction.next,
                                 autofillHints: const [
                                   AutofillHints.newPassword,
@@ -201,7 +211,8 @@ class _SignUpPageState extends State<SignUpPage>
                               ],
                               const SizedBox(height: 12),
                               AuthInputField(
-                                hint: 'Confirm password',
+                                controller: _confirmController,
+                                hint: 'Confirm Password',
                                 prefix: Icons.verified_user_outlined,
                                 obscureText: _obscureConfirm,
                                 textInputAction: TextInputAction.next,
@@ -233,6 +244,7 @@ class _SignUpPageState extends State<SignUpPage>
                               ),
                               const SizedBox(height: 12),
                               AuthInputField(
+                                controller: _phoneController,
                                 hint: 'Phone number',
                                 prefix: Icons.phone_outlined,
                                 keyboardType: TextInputType.phone,
@@ -272,12 +284,10 @@ class _SignUpPageState extends State<SignUpPage>
                                     ),
                                     Expanded(
                                       child: Padding(
-                                        padding:
-                                            const EdgeInsets.only(top: 9),
+                                        padding: const EdgeInsets.only(top: 9),
                                         child: RichText(
                                           text: TextSpan(
-                                            style:
-                                                textTheme.bodyMedium,
+                                            style: textTheme.bodyMedium,
                                             children: [
                                               const TextSpan(
                                                 text: 'I agree to the ',
@@ -286,20 +296,20 @@ class _SignUpPageState extends State<SignUpPage>
                                                 text: 'Terms',
                                                 style: textTheme.bodyMedium
                                                     ?.copyWith(
-                                                  color: AppColors.accent,
-                                                  fontWeight:
-                                                      FontWeight.w700,
-                                                ),
+                                                      color: AppColors.accent,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
                                               ),
                                               const TextSpan(text: ' and '),
                                               TextSpan(
                                                 text: 'Privacy Policy',
                                                 style: textTheme.bodyMedium
                                                     ?.copyWith(
-                                                  color: AppColors.accent,
-                                                  fontWeight:
-                                                      FontWeight.w700,
-                                                ),
+                                                      color: AppColors.accent,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
                                               ),
                                               const TextSpan(text: '.'),
                                             ],
@@ -315,19 +325,60 @@ class _SignUpPageState extends State<SignUpPage>
                                 label: 'Create secure account',
                                 icon: Icons.shield_rounded,
                                 onPressed: _agreeTerms
-                                    ? () {
-                                        if (_formKey.currentState
+                                    ? () async {
+                                        if (!(_formKey.currentState
                                                 ?.validate() ??
-                                            false) {
-                                          FocusScope.of(context).unfocus();
+                                            false)) {
+                                          return;
+                                        }
+
+                                        final result =
+                                            await ApiService.register(
+                                              fullName: _nameController.text
+                                                  .trim(),
+                                              email: _emailController.text
+                                                  .trim(),
+                                              password:
+                                                  _passwordController.text,
+                                            );
+
+                                        if (!mounted) return;
+
+                                        if (result["status"] == 200) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                "Registration Success",
+                                              ),
+                                            ),
+                                          );
+
+                                          Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => const LoginPage(),
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                result["body"]["detail"]
+                                                    .toString(),
+                                              ),
+                                            ),
+                                          );
                                         }
                                       }
                                     : null,
                               ),
                               const SizedBox(height: 16),
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
                                     'Already have an account?',
@@ -335,12 +386,11 @@ class _SignUpPageState extends State<SignUpPage>
                                   ),
                                   TextButton(
                                     onPressed: () =>
-                                        Navigator.of(context)
-                                            .pushReplacement(
-                                      MaterialPageRoute<void>(
-                                        builder: (_) => const LoginPage(),
-                                      ),
-                                    ),
+                                        Navigator.of(context).pushReplacement(
+                                          MaterialPageRoute<void>(
+                                            builder: (_) => const LoginPage(),
+                                          ),
+                                        ),
                                     child: const Text('Log in'),
                                   ),
                                 ],
@@ -414,16 +464,16 @@ class _PasswordStrengthMeter extends StatelessWidget {
           children: [
             Text(
               'Password strength',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                    color: _color,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: _color,
+                fontWeight: FontWeight.w700,
+              ),
               child: Text(_label),
             ),
           ],
