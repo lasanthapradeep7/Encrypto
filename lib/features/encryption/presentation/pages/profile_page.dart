@@ -13,27 +13,13 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: 'Lasantha Pradee');
-  final _emailController = TextEditingController(text: 'lasantha@example.com');
-  final _roleController = TextEditingController(text: 'Vault owner');
-  bool _biometricUnlock = true;
+  bool _biometricAuthentication = true;
+  bool _cloudSync = false;
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _roleController.dispose();
-    super.dispose();
-  }
-
-  void _saveProfile() {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-
-    FocusScope.of(context).unfocus();
+  void _showComingSoon(String label) {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Profile updated')));
+    ).showSnackBar(SnackBar(content: Text('$label coming soon')));
   }
 
   @override
@@ -48,177 +34,79 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         Expanded(
           child: SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: EncryptionContentContainer(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-              child: Form(
-                key: _formKey,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _PageHeader(
-                      icon: Icons.person_outline_rounded,
-                      title: 'Profile',
-                      subtitle: 'Manage your identity and account access',
+              padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'User Profile',
+                    textAlign: TextAlign.center,
+                    style: textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0,
                     ),
-                    const SizedBox(height: 20),
-                    EncryptionSurfaceCard(
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 68,
-                                height: 68,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  gradient: AppGradients.accentHorizontal,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: AppShadows.accent,
-                                ),
-                                child: Text(
-                                  'LP',
-                                  style: textTheme.titleLarge?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Primary account',
-                                      style: textTheme.titleMedium?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Last verified today',
-                                      style: textTheme.bodySmall?.copyWith(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.58,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-                          _ProfileField(
-                            controller: _nameController,
-                            label: 'Display name',
-                            icon: Icons.badge_outlined,
-                            validator: (value) {
-                              if (value == null || value.trim().length < 2) {
-                                return 'Enter a valid display name';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          _ProfileField(
-                            controller: _emailController,
-                            label: 'Email address',
-                            icon: Icons.alternate_email_rounded,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (value) {
-                              final email = value?.trim() ?? '';
-                              if (!email.contains('@') ||
-                                  !email.contains('.')) {
-                                return 'Enter a valid email address';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          _ProfileField(
-                            controller: _roleController,
-                            label: 'Account role',
-                            icon: Icons.verified_user_outlined,
-                          ),
-                          const SizedBox(height: 16),
-                          _SwitchRow(
-                            icon: Icons.fingerprint_rounded,
-                            label: 'Biometric unlock',
-                            subtitle: 'Allow quick profile verification',
-                            value: _biometricUnlock,
-                            onChanged: (value) {
-                              setState(() => _biometricUnlock = value);
-                            },
-                          ),
-                        ],
+                  ),
+                  const SizedBox(height: 22),
+                  const _ProfileHero(),
+                  const SizedBox(height: 28),
+                  Text(
+                    'Personal Information',
+                    style: textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _ProfileMenuGroup(
+                    children: [
+                      _ProfileActionTile(
+                        icon: Icons.manage_accounts_outlined,
+                        label: 'Edit Profile',
+                        onTap: () => _showComingSoon('Edit Profile'),
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    EncryptionSurfaceCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Account health',
-                            style: textTheme.titleMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          const _HealthItem(
-                            icon: Icons.lock_clock_rounded,
-                            label: 'Master key age',
-                            value: '18 days',
-                            color: Color(0xFF60A5FA),
-                          ),
-                          const SizedBox(height: 10),
-                          const _HealthItem(
-                            icon: Icons.devices_rounded,
-                            label: 'Trusted devices',
-                            value: '3 active',
-                            color: Color(0xFF34D399),
-                          ),
-                          const SizedBox(height: 10),
-                          const _HealthItem(
-                            icon: Icons.cloud_done_rounded,
-                            label: 'Recovery backup',
-                            value: 'Synced',
-                            color: Color(0xFFA78BFA),
-                          ),
-                        ],
+                      _ProfileActionTile(
+                        icon: Icons.password_rounded,
+                        label: 'Change password',
+                        onTap: () => _showComingSoon('Change password'),
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    SizedBox(
-                      height: 52,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: AppGradients.accentHorizontal,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: AppShadows.accent,
-                        ),
-                        child: ElevatedButton.icon(
-                          onPressed: _saveProfile,
-                          icon: const Icon(Icons.save_outlined),
-                          label: const Text('Save changes'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                        ),
+                      _ProfileSwitchTile(
+                        icon: Icons.fingerprint_rounded,
+                        label: 'Biometric authentication',
+                        value: _biometricAuthentication,
+                        onChanged: (value) {
+                          setState(() => _biometricAuthentication = value);
+                        },
                       ),
-                    ),
-                  ],
-                ),
+                      _ProfileSwitchTile(
+                        icon: Icons.cloud_sync_rounded,
+                        label: 'Cloud sync',
+                        value: _cloudSync,
+                        onChanged: (value) {
+                          setState(() => _cloudSync = value);
+                        },
+                      ),
+                      _ProfileActionTile(
+                        icon: Icons.language_rounded,
+                        label: 'Language',
+                        trailingText: 'English',
+                        onTap: () => _showComingSoon('Language'),
+                      ),
+                      _ProfileActionTile(
+                        icon: Icons.group_add_outlined,
+                        label: 'Invite Friends',
+                        onTap: () => _showComingSoon('Invite Friends'),
+                      ),
+                      _ProfileActionTile(
+                        icon: Icons.help_outline_rounded,
+                        label: 'Help Center',
+                        onTap: () => _showComingSoon('Help Center'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -228,48 +116,93 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
-class _PageHeader extends StatelessWidget {
-  const _PageHeader({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
+class _ProfileHero extends StatelessWidget {
+  const _ProfileHero();
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Row(
+    return Column(
       children: [
-        ShaderMask(
-          blendMode: BlendMode.srcIn,
-          shaderCallback: (bounds) =>
-              AppGradients.accentHorizontal.createShader(bounds),
-          child: Icon(icon, size: 22),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: textTheme.titleLarge?.copyWith(
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: AppGradients.accent,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.86),
+                  width: 4,
+                ),
+                boxShadow: AppShadows.accentGlow,
+              ),
+              child: Text(
+                'LP',
+                style: textTheme.headlineSmall?.copyWith(
                   color: Colors.white,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0,
                 ),
               ),
-              Text(
-                subtitle,
-                style: textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.6),
+            ),
+            Positioned(
+              right: 6,
+              bottom: 4,
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: AppColors.success,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.backgroundStart,
+                    width: 3,
+                  ),
                 ),
               ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Lasantha Pradee',
+          textAlign: TextAlign.center,
+          style: textTheme.titleMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'lasantha@example.com',
+          textAlign: TextAlign.center,
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.white.withValues(alpha: 0.46),
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: AppColors.accent.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AppColors.accent.withValues(alpha: 0.34)),
+          ),
+          child: Text(
+            'Vault owner',
+            style: textTheme.labelMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.88),
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0,
+            ),
           ),
         ),
       ],
@@ -277,154 +210,173 @@ class _PageHeader extends StatelessWidget {
   }
 }
 
-class _ProfileField extends StatelessWidget {
-  const _ProfileField({
-    required this.controller,
-    required this.label,
-    required this.icon,
-    this.keyboardType,
-    this.validator,
-  });
+class _ProfileMenuGroup extends StatelessWidget {
+  const _ProfileMenuGroup({required this.children});
 
-  final TextEditingController controller;
-  final String label;
-  final IconData icon;
-  final TextInputType? keyboardType;
-  final String? Function(String?)? validator;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      validator: validator,
-      style: textTheme.bodyLarge?.copyWith(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.62)),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.08),
-        labelStyle: textTheme.bodyMedium?.copyWith(
-          color: Colors.white.withValues(alpha: 0.56),
-        ),
-        errorStyle: textTheme.bodySmall?.copyWith(color: AppColors.error),
-        border: _inputBorder(Colors.white.withValues(alpha: 0.14)),
-        enabledBorder: _inputBorder(Colors.white.withValues(alpha: 0.14)),
-        focusedBorder: _inputBorder(AppColors.accent, width: 1.8),
-        errorBorder: _inputBorder(AppColors.error, width: 1.4),
-        focusedErrorBorder: _inputBorder(AppColors.error, width: 1.8),
-      ),
-    );
-  }
-
-  OutlineInputBorder _inputBorder(Color color, {double width = 1}) {
-    return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(color: color, width: width),
+    return Column(
+      children: [
+        for (var index = 0; index < children.length; index++) ...[
+          children[index],
+          if (index != children.length - 1) const SizedBox(height: 12),
+        ],
+      ],
     );
   }
 }
 
-class _SwitchRow extends StatelessWidget {
-  const _SwitchRow({
+class _ProfileActionTile extends StatelessWidget {
+  const _ProfileActionTile({
     required this.icon,
     required this.label,
-    required this.subtitle,
+    required this.onTap,
+    this.trailingText,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final String? trailingText;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ProfileTileShell(
+      onTap: onTap,
+      child: Row(
+        children: [
+          _TileIcon(icon: icon),
+          const SizedBox(width: 12),
+          Expanded(child: _TileLabel(label)),
+          if (trailingText case final value?) ...[
+            Text(
+              value,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.48),
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0,
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Icon(
+            Icons.chevron_right_rounded,
+            color: Colors.white.withValues(alpha: 0.56),
+            size: 26,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileSwitchTile extends StatelessWidget {
+  const _ProfileSwitchTile({
+    required this.icon,
+    required this.label,
     required this.value,
     required this.onChanged,
   });
 
   final IconData icon;
   final String label;
-  final String subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Row(
-      children: [
-        Icon(icon, color: AppColors.accent, size: 22),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: textTheme.bodyLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.52),
-                ),
-              ),
-            ],
+    return _ProfileTileShell(
+      onTap: () => onChanged(!value),
+      child: Row(
+        children: [
+          _TileIcon(icon: icon),
+          const SizedBox(width: 12),
+          Expanded(child: _TileLabel(label)),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: Colors.white,
+            activeTrackColor: AppColors.accent,
+            inactiveThumbColor: Colors.white.withValues(alpha: 0.82),
+            inactiveTrackColor: Colors.white.withValues(alpha: 0.16),
+            trackOutlineColor: WidgetStatePropertyAll(
+              Colors.white.withValues(alpha: 0.16),
+            ),
           ),
-        ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: Colors.white,
-          activeTrackColor: AppColors.accent,
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-class _HealthItem extends StatelessWidget {
-  const _HealthItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
+class _ProfileTileShell extends StatelessWidget {
+  const _ProfileTileShell({required this.child, required this.onTap});
 
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
+  final Widget child;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: AppGradients.card,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.22),
+              width: 1,
+            ),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 58),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: child,
+            ),
+          ),
+        ),
       ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.78),
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
+    );
+  }
+}
+
+class _TileIcon extends StatelessWidget {
+  const _TileIcon({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: (bounds) =>
+          AppGradients.accentHorizontal.createShader(bounds),
+      child: Icon(icon, size: 22),
+    );
+  }
+}
+
+class _TileLabel extends StatelessWidget {
+  const _TileLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        color: Colors.white.withValues(alpha: 0.92),
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0,
       ),
     );
   }

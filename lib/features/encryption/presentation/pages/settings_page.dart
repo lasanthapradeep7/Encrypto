@@ -13,11 +13,22 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _autoLock = true;
-  bool _cloudBackup = false;
-  bool _metadataScrub = true;
-  double _autoLockMinutes = 5;
-  String _encryptionMode = 'AES-256';
+  bool _biometricAuthentication = true;
+  bool _notificationSound = true;
+  bool _cloudSync = false;
+  bool _lockScreen = true;
+
+  void _showComingSoon(String label) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$label coming soon')));
+  }
+
+  void _logout() {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Logout coming soon')));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,155 +43,92 @@ class _SettingsPageState extends State<SettingsPage> {
         Expanded(
           child: SingleChildScrollView(
             child: EncryptionContentContainer(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _SettingsHeader(textTheme: textTheme),
-                  const SizedBox(height: 20),
-                  EncryptionSurfaceCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _SectionTitle(
-                          icon: Icons.security_rounded,
-                          label: 'Security defaults',
-                        ),
-                        const SizedBox(height: 14),
-                        _SettingsSwitch(
-                          label: 'Auto-lock vault',
-                          subtitle: 'Require re-authentication after idle time',
-                          value: _autoLock,
-                          onChanged: (value) {
-                            setState(() => _autoLock = value);
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        AnimatedOpacity(
-                          opacity: _autoLock ? 1 : 0.42,
-                          duration: const Duration(milliseconds: 180),
-                          child: IgnorePointer(
-                            ignoring: !_autoLock,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Lock after ${_autoLockMinutes.round()} minutes',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.82),
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                Slider(
-                                  value: _autoLockMinutes,
-                                  min: 1,
-                                  max: 30,
-                                  divisions: 29,
-                                  label: '${_autoLockMinutes.round()} min',
-                                  onChanged: (value) {
-                                    setState(() => _autoLockMinutes = value);
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Divider(
-                          height: 24,
-                          color: Colors.white.withValues(alpha: 0.08),
-                        ),
-                        _SettingsSwitch(
-                          label: 'Scrub file metadata',
-                          subtitle: 'Remove EXIF and document fingerprints',
-                          value: _metadataScrub,
-                          onChanged: (value) {
-                            setState(() => _metadataScrub = value);
-                          },
-                        ),
-                      ],
+                  Text(
+                    'Settings',
+                    textAlign: TextAlign.center,
+                    style: textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0,
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  EncryptionSurfaceCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _SectionTitle(
-                          icon: Icons.tune_rounded,
-                          label: 'Encryption preferences',
-                        ),
-                        const SizedBox(height: 14),
-                        SegmentedButton<String>(
-                          segments: const [
-                            ButtonSegment<String>(
-                              value: 'AES-256',
-                              label: Text('AES-256'),
-                              icon: Icon(Icons.lock_rounded),
-                            ),
-                            ButtonSegment<String>(
-                              value: 'Hybrid',
-                              label: Text('Hybrid'),
-                              icon: Icon(Icons.hub_rounded),
-                            ),
-                          ],
-                          selected: {_encryptionMode},
-                          onSelectionChanged: (selection) {
-                            setState(() => _encryptionMode = selection.first);
-                          },
-                          style: ButtonStyle(
-                            foregroundColor: WidgetStateProperty.resolveWith((
-                              states,
-                            ) {
-                              if (states.contains(WidgetState.selected)) {
-                                return Colors.white;
-                              }
-                              return Colors.white.withValues(alpha: 0.62);
-                            }),
-                            backgroundColor: WidgetStateProperty.resolveWith((
-                              states,
-                            ) {
-                              if (states.contains(WidgetState.selected)) {
-                                return AppColors.accent;
-                              }
-                              return Colors.white.withValues(alpha: 0.06);
-                            }),
-                            side: WidgetStatePropertyAll(
-                              BorderSide(
-                                color: Colors.white.withValues(alpha: 0.14),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        _SettingsSwitch(
-                          label: 'Cloud backup',
-                          subtitle: 'Store encrypted recovery copies',
-                          value: _cloudBackup,
-                          onChanged: (value) {
-                            setState(() => _cloudBackup = value);
-                          },
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 34),
+                  _SettingsGroup(
+                    children: [
+                      _SettingsActionRow(
+                        label: 'Change password',
+                        onTap: () => _showComingSoon('Change password'),
+                      ),
+                      _SettingsSwitchRow(
+                        label: 'Biometric authentication',
+                        value: _biometricAuthentication,
+                        onChanged: (value) {
+                          setState(() => _biometricAuthentication = value);
+                        },
+                      ),
+                      _SettingsActionRow(
+                        label: 'Logout',
+                        destructive: true,
+                        onTap: _logout,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 18),
-                  EncryptionSurfaceCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _SectionTitle(
-                          icon: Icons.info_outline_rounded,
-                          label: 'Application',
-                        ),
-                        const SizedBox(height: 14),
-                        const _SettingsDetail(label: 'Version', value: '1.0.0'),
-                        const SizedBox(height: 10),
-                        const _SettingsDetail(
-                          label: 'Local vault policy',
-                          value: 'Device-only by default',
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 38),
+                  _SettingsGroup(
+                    children: [
+                      _SettingsActionRow(
+                        label: 'Notification settings',
+                        onTap: () => _showComingSoon('Notification settings'),
+                      ),
+                      _SettingsSwitchRow(
+                        label: 'Notification sound',
+                        value: _notificationSound,
+                        onChanged: (value) {
+                          setState(() => _notificationSound = value);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 38),
+                  _SettingsGroup(
+                    children: [
+                      _SettingsSwitchRow(
+                        label: 'Cloud sync',
+                        value: _cloudSync,
+                        onChanged: (value) {
+                          setState(() => _cloudSync = value);
+                        },
+                      ),
+                      _SettingsActionRow(
+                        label: 'Key management',
+                        onTap: () => _showComingSoon('Key management'),
+                      ),
+                      _SettingsActionRow(
+                        label: 'Steganography',
+                        onTap: () => _showComingSoon('Steganography'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 38),
+                  _SettingsGroup(
+                    children: [
+                      _SettingsSwitchRow(
+                        label: 'Lock Screen',
+                        value: _lockScreen,
+                        onChanged: (value) {
+                          setState(() => _lockScreen = value);
+                        },
+                      ),
+                      _SettingsActionRow(
+                        label: 'App language',
+                        trailingText: 'English',
+                        onTap: () => _showComingSoon('App language'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -192,164 +140,183 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-class _SettingsHeader extends StatelessWidget {
-  const _SettingsHeader({required this.textTheme});
+class _SettingsGroup extends StatelessWidget {
+  const _SettingsGroup({required this.children});
 
-  final TextTheme textTheme;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        ShaderMask(
-          blendMode: BlendMode.srcIn,
-          shaderCallback: (bounds) =>
-              AppGradients.accentHorizontal.createShader(bounds),
-          child: const Icon(Icons.settings_outlined, size: 22),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: AppGradients.card,
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.10),
+          width: 1,
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Settings',
-                style: textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                'Control vault behavior and encryption defaults',
-                style: textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
-              ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.20),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          children: [
+            for (var index = 0; index < children.length; index++) ...[
+              children[index],
+              if (index != children.length - 1) const _SettingsDivider(),
             ],
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.icon, required this.label});
+class _SettingsActionRow extends StatelessWidget {
+  const _SettingsActionRow({
+    required this.label,
+    required this.onTap,
+    this.trailingText,
+    this.destructive = false,
+  });
 
-  final IconData icon;
   final String label;
+  final VoidCallback onTap;
+  final String? trailingText;
+  final bool destructive;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final color = destructive
+        ? AppColors.error.withValues(alpha: 0.92)
+        : Colors.white.withValues(alpha: 0.92);
 
-    return Row(
-      children: [
-        ShaderMask(
-          blendMode: BlendMode.srcIn,
-          shaderCallback: (bounds) =>
-              AppGradients.accentHorizontal.createShader(bounds),
-          child: Icon(icon, size: 17),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: textTheme.titleMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
+    return _SettingsRowShell(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Expanded(child: _SettingsLabel(label, color: color)),
+          if (trailingText case final value?) ...[
+            Text(
+              value,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.48),
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0,
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Icon(
+            destructive ? Icons.logout_rounded : Icons.chevron_right_rounded,
+            color: destructive
+                ? AppColors.error.withValues(alpha: 0.82)
+                : Colors.white.withValues(alpha: 0.46),
+            size: destructive ? 20 : 24,
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-class _SettingsSwitch extends StatelessWidget {
-  const _SettingsSwitch({
+class _SettingsSwitchRow extends StatelessWidget {
+  const _SettingsSwitchRow({
     required this.label,
-    required this.subtitle,
     required this.value,
     required this.onChanged,
   });
 
   final String label;
-  final String subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: textTheme.bodyLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.52),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: Colors.white,
-          activeTrackColor: AppColors.accent,
-        ),
-      ],
-    );
-  }
-}
-
-class _SettingsDetail extends StatelessWidget {
-  const _SettingsDetail({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-      ),
+    return _SettingsRowShell(
+      onTap: () => onChanged(!value),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.62),
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
+          Expanded(child: _SettingsLabel(label)),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: Colors.white,
+            activeTrackColor: AppColors.accent,
+            inactiveThumbColor: Colors.white.withValues(alpha: 0.80),
+            inactiveTrackColor: Colors.white.withValues(alpha: 0.15),
+            trackOutlineColor: WidgetStatePropertyAll(
+              Colors.white.withValues(alpha: 0.14),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SettingsRowShell extends StatelessWidget {
+  const _SettingsRowShell({required this.child, required this.onTap});
+
+  final Widget child;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsLabel extends StatelessWidget {
+  const _SettingsLabel(this.label, {this.color});
+
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        color: color ?? Colors.white.withValues(alpha: 0.92),
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0,
+      ),
+    );
+  }
+}
+
+class _SettingsDivider extends StatelessWidget {
+  const _SettingsDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      indent: 22,
+      color: Colors.white.withValues(alpha: 0.20),
     );
   }
 }

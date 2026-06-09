@@ -35,132 +35,113 @@ class SecurityPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Page header
                   Row(
                     children: [
                       ShaderMask(
                         blendMode: BlendMode.srcIn,
-                        shaderCallback: (b) =>
-                            AppGradients.accentHorizontal.createShader(b),
+                        shaderCallback: (bounds) =>
+                            AppGradients.accentHorizontal.createShader(bounds),
                         child: const Icon(Icons.shield_outlined, size: 22),
                       ),
                       const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Security center',
-                            style: textTheme.titleLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Intruder Alert',
+                              style: textTheme.titleLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0,
+                              ),
                             ),
-                          ),
-                          Text(
-                            'Monitor keys, access & policies',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.6),
+                            Text(
+                              'Review failed access attempts',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.58),
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const _RiskBadge(),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  // Status card
                   EncryptionSurfaceCard(
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            ShaderMask(
-                              blendMode: BlendMode.srcIn,
-                              shaderCallback: (b) =>
-                                  AppGradients.accentHorizontal.createShader(b),
-                              child: const Icon(
-                                Icons.health_and_safety_rounded,
-                                size: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Protection status',
-                              style: textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
+                            const _AlertIcon(),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '3 attempts blocked',
+                                    style: textTheme.titleMedium?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Last attempt detected 2 min ago',
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.52,
+                                      ),
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 18),
-                        const _SecurityStatusRow(
-                          icon: Icons.fingerprint_rounded,
-                          label: 'Biometric lock',
-                          value: 'Enabled',
-                          status: _StatusType.success,
-                        ),
-                        _StatusDivider(),
-                        const _SecurityStatusRow(
-                          icon: Icons.cloud_sync_rounded,
-                          label: 'Cloud sync policy',
-                          value: 'Manual',
-                          status: _StatusType.warning,
-                        ),
-                        _StatusDivider(),
-                        const _SecurityStatusRow(
-                          icon: Icons.key_rounded,
-                          label: 'Key rotation',
-                          value: 'Scheduled',
-                          status: _StatusType.info,
+                        const SizedBox(height: 16),
+                        const _SectionTitle('Intruder Photos'),
+                        const SizedBox(height: 12),
+                        const _IntruderPhotoStrip(),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 48,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: AppGradients.accentHorizontal,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: AppShadows.accent,
+                            ),
+                            child: ElevatedButton.icon(
+                              onPressed: onOpenWorkflow,
+                              icon: const Icon(Icons.visibility_outlined),
+                              label: const Text('More Details'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: Colors.white,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 18),
-                  // Actions card
-                  EncryptionSurfaceCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            ShaderMask(
-                              blendMode: BlendMode.srcIn,
-                              shaderCallback: (b) =>
-                                  AppGradients.accentHorizontal.createShader(b),
-                              child: const Icon(Icons.bolt_rounded, size: 16),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Actions',
-                              style: textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        _SecurityActionTile(
-                          label: 'Open encryption workflow',
-                          subtitle: 'Lock or unlock your data',
-                          icon: Icons.lock_rounded,
-                          gradient: AppGradients.accentHorizontal,
-                          onPressed: onOpenWorkflow,
-                        ),
-                        const SizedBox(height: 10),
-                        const _SecurityActionTile(
-                          label: 'Review trusted devices',
-                          subtitle: 'Manage device access',
-                          icon: Icons.devices_rounded,
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF34D399), Color(0xFF059669)],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                  const _SectionTitle('Failed Login Attempts'),
+                  const SizedBox(height: 12),
+                  const _LoginAttemptList(),
                 ],
               ),
             ),
@@ -171,219 +152,356 @@ class SecurityPage extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Status type enum for badge styling
-// ---------------------------------------------------------------------------
-enum _StatusType { success, warning, info }
+class _RiskBadge extends StatelessWidget {
+  const _RiskBadge();
 
-class _StatusDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 1,
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      color: Colors.white.withValues(alpha: 0.08),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.34)),
+      ),
+      child: Text(
+        'High risk',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AppColors.warning,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0,
+        ),
+      ),
     );
   }
 }
 
-class _SecurityStatusRow extends StatelessWidget {
-  const _SecurityStatusRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.status,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final _StatusType status;
-
-  Color get _badgeColor {
-    return switch (status) {
-      _StatusType.success => AppColors.success,
-      _StatusType.warning => AppColors.warning,
-      _StatusType.info => AppColors.accent,
-    };
-  }
-
-  Color get _iconColor {
-    return switch (status) {
-      _StatusType.success => const Color(0xFF34D399),
-      _StatusType.warning => const Color(0xFFFBBF24),
-      _StatusType.info => const Color(0xFF60A5FA),
-    };
-  }
+class _AlertIcon extends StatelessWidget {
+  const _AlertIcon();
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      width: 46,
+      height: 46,
+      decoration: BoxDecoration(
+        gradient: AppGradients.accentHorizontal,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: AppShadows.accent,
+      ),
+      child: const Icon(
+        Icons.gpp_maybe_outlined,
+        color: Colors.white,
+        size: 24,
+      ),
+    );
+  }
+}
 
-    return Row(
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        color: Colors.white,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0,
+      ),
+    );
+  }
+}
+
+class _IntruderPhotoStrip extends StatelessWidget {
+  const _IntruderPhotoStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 148,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        children: const [
+          _IntruderPhotoCard(
+            initials: 'A1',
+            icon: Icons.face_retouching_natural_rounded,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF334155), Color(0xFF0F172A)],
+            ),
+            accent: AppColors.accent,
+          ),
+          SizedBox(width: 14),
+          _IntruderPhotoCard(
+            initials: 'A2',
+            icon: Icons.face_4_rounded,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF312E81), Color(0xFF111827)],
+            ),
+            accent: Color(0xFFA78BFA),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IntruderPhotoCard extends StatelessWidget {
+  const _IntruderPhotoCard({
+    required this.initials,
+    required this.icon,
+    required this.gradient,
+    required this.accent,
+  });
+
+  final String initials;
+  final IconData icon;
+  final Gradient gradient;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 146,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -18,
+            bottom: -16,
+            child: Icon(
+              icon,
+              color: Colors.white.withValues(alpha: 0.48),
+              size: 136,
+            ),
+          ),
+          Positioned(
+            left: 14,
+            top: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.34),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: accent.withValues(alpha: 0.42)),
+              ),
+              child: Text(
+                initials,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.62),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 14,
+            bottom: 12,
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Captured',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoginAttemptList extends StatelessWidget {
+  const _LoginAttemptList();
+
+  static const _attempts = [
+    _LoginAttempt(date: 'Dec 23, 2025', time: '02:00 PM', method: 'PIN'),
+    _LoginAttempt(date: 'Dec 23, 2025', time: '08:00 AM', method: 'Biometric'),
+    _LoginAttempt(date: 'Dec 23, 2025', time: '08:00 AM', method: 'Biometric'),
+    _LoginAttempt(date: 'Dec 02, 2025', time: '02:00 PM', method: 'PIN'),
+    _LoginAttempt(date: 'Dec 02, 2025', time: '02:00 PM', method: 'PIN'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
       children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: _iconColor.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: _iconColor, size: 16),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withValues(alpha: 0.88),
-            ),
-          ),
-        ),
-        // Status badge pill
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: _badgeColor.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: _badgeColor.withValues(alpha: 0.40),
-              width: 0.8,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: _badgeColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 5),
-              Text(
-                value,
-                style: textTheme.labelSmall?.copyWith(
-                  color: _badgeColor,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
-          ),
-        ),
+        for (var index = 0; index < _attempts.length; index++) ...[
+          _LoginAttemptTile(attempt: _attempts[index]),
+          if (index != _attempts.length - 1) const SizedBox(height: 10),
+        ],
       ],
     );
   }
 }
 
-class _SecurityActionTile extends StatefulWidget {
-  const _SecurityActionTile({
-    required this.label,
-    required this.subtitle,
-    required this.icon,
-    required this.gradient,
-    this.onPressed,
+class _LoginAttempt {
+  const _LoginAttempt({
+    required this.date,
+    required this.time,
+    required this.method,
   });
 
-  final String label;
-  final String subtitle;
-  final IconData icon;
-  final Gradient gradient;
-  final VoidCallback? onPressed;
-
-  @override
-  State<_SecurityActionTile> createState() => _SecurityActionTileState();
+  final String date;
+  final String time;
+  final String method;
 }
 
-class _SecurityActionTileState extends State<_SecurityActionTile> {
-  bool _pressed = false;
+class _LoginAttemptTile extends StatelessWidget {
+  const _LoginAttemptTile({required this.attempt});
+
+  final _LoginAttempt attempt;
+
+  Color get _methodColor {
+    return attempt.method == 'PIN' ? AppColors.warning : AppColors.accent;
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final disabled = widget.onPressed == null;
 
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onPressed?.call();
-      },
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedScale(
-        scale: _pressed ? 0.97 : 1.0,
-        duration: const Duration(milliseconds: 120),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: disabled
-                ? Colors.white.withValues(alpha: 0.04)
-                : Colors.white.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: _pressed
-                  ? Colors.white.withValues(alpha: 0.22)
-                  : Colors.white.withValues(alpha: 0.10),
+    return Container(
+      constraints: const BoxConstraints(minHeight: 58),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      decoration: BoxDecoration(
+        gradient: AppGradients.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: _methodColor.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(
+              attempt.method == 'PIN'
+                  ? Icons.pin_outlined
+                  : Icons.fingerprint_rounded,
+              color: _methodColor,
+              size: 18,
             ),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  gradient: disabled
-                      ? const LinearGradient(
-                          colors: [Color(0x33FFFFFF), Color(0x22FFFFFF)],
-                        )
-                      : widget.gradient,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: disabled
-                      ? []
-                      : [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  attempt.date,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0,
+                    height: 1.1,
+                  ),
                 ),
-                child: Icon(widget.icon, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.label,
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: disabled
-                            ? Colors.white.withValues(alpha: 0.4)
-                            : Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      widget.subtitle,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 2),
+                Text(
+                  attempt.time,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.54),
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0,
+                    height: 1.1,
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: Colors.white.withValues(alpha: disabled ? 0.2 : 0.5),
-                size: 20,
-              ),
-            ],
+              ],
+            ),
           ),
+          _MethodBadge(label: attempt.method, color: _methodColor),
+        ],
+      ),
+    );
+  }
+}
+
+class _MethodBadge extends StatelessWidget {
+  const _MethodBadge({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 78),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.34)),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0,
         ),
       ),
     );

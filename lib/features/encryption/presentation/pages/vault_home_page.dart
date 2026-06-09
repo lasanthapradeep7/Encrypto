@@ -119,7 +119,7 @@ class VaultHomePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  // Quick actions card
+                  // Recent files card
                   EncryptionSurfaceCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,45 +130,30 @@ class VaultHomePage extends StatelessWidget {
                               blendMode: BlendMode.srcIn,
                               shaderCallback: (b) =>
                                   AppGradients.accentHorizontal.createShader(b),
-                              child: const Icon(Icons.bolt_rounded, size: 16),
+                              child: const Icon(
+                                Icons.folder_open_rounded,
+                                size: 16,
+                              ),
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Quick actions',
+                              'Recent files',
                               style: textTheme.titleMedium?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
+                            const Spacer(),
+                            TextButton(
+                              onPressed: onOpenWorkflow,
+                              child: const Text('Add file'),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 14),
-                        _VaultActionTile(
-                          label: 'Start encryption workflow',
-                          subtitle: 'Encrypt or decrypt your files',
-                          icon: Icons.play_arrow_rounded,
-                          gradient: AppGradients.accentHorizontal,
-                          onPressed: onOpenWorkflow,
-                        ),
-                        const SizedBox(height: 10),
-                        _VaultActionTile(
-                          label: 'Open steganography',
-                          subtitle: 'Hide data inside images',
-                          icon: Icons.auto_awesome_rounded,
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFA78BFA), Color(0xFF7C3AFF)],
-                          ),
-                          onPressed: onOpenSteganographyWorkflow,
-                        ),
-                        const SizedBox(height: 10),
-                        const _VaultActionTile(
-                          label: 'Browse recent vault items',
-                          subtitle: 'View your file history',
-                          icon: Icons.folder_open_rounded,
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF34D399), Color(0xFF059669)],
-                          ),
-                        ),
+                        const _VaultSearchField(),
+                        const SizedBox(height: 14),
+                        const _RecentFileList(),
                       ],
                     ),
                   ),
@@ -247,81 +232,152 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-class _VaultActionTile extends StatefulWidget {
-  const _VaultActionTile({
-    required this.label,
-    required this.subtitle,
-    required this.icon,
-    required this.gradient,
-    this.onPressed,
-  });
-
-  final String label;
-  final String subtitle;
-  final IconData icon;
-  final Gradient gradient;
-  final VoidCallback? onPressed;
+class _VaultSearchField extends StatelessWidget {
+  const _VaultSearchField();
 
   @override
-  State<_VaultActionTile> createState() => _VaultActionTileState();
+  Widget build(BuildContext context) {
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.search_rounded,
+            color: Colors.white.withValues(alpha: 0.58),
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Search for files...',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.54),
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+          Icon(
+            Icons.tune_rounded,
+            color: Colors.white.withValues(alpha: 0.68),
+            size: 20,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _VaultActionTileState extends State<_VaultActionTile> {
-  bool _pressed = false;
+class _RecentFileList extends StatelessWidget {
+  const _RecentFileList();
+
+  static const _files = [
+    _VaultFile(
+      name: 'photo.jpg',
+      status: 'Encrypted',
+      size: '3.2 MB',
+      icon: Icons.image_rounded,
+      color: AppColors.accent,
+    ),
+    _VaultFile(
+      name: 'document.pdf',
+      status: 'Decrypted',
+      size: '4.3 MB',
+      icon: Icons.description_rounded,
+      color: AppColors.success,
+    ),
+    _VaultFile(
+      name: 'photo.jpg',
+      status: 'Decrypted',
+      size: '3.2 MB',
+      icon: Icons.image_rounded,
+      color: AppColors.success,
+    ),
+    _VaultFile(
+      name: 'document.pdf',
+      status: 'Encrypted',
+      size: '4.3 MB',
+      icon: Icons.description_rounded,
+      color: AppColors.accent,
+    ),
+    _VaultFile(
+      name: 'document.pdf',
+      status: 'Encrypted',
+      size: '4.3 MB',
+      icon: Icons.description_rounded,
+      color: AppColors.accent,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var index = 0; index < _files.length; index++) ...[
+          _RecentFileTile(file: _files[index]),
+          if (index != _files.length - 1) const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
+}
+
+class _VaultFile {
+  const _VaultFile({
+    required this.name,
+    required this.status,
+    required this.size,
+    required this.icon,
+    required this.color,
+  });
+
+  final String name;
+  final String status;
+  final String size;
+  final IconData icon;
+  final Color color;
+}
+
+class _RecentFileTile extends StatelessWidget {
+  const _RecentFileTile({required this.file});
+
+  final _VaultFile file;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final disabled = widget.onPressed == null;
 
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onPressed?.call();
-      },
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedScale(
-        scale: _pressed ? 0.97 : 1.0,
-        duration: const Duration(milliseconds: 120),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {},
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
           decoration: BoxDecoration(
-            color: disabled
-                ? Colors.white.withValues(alpha: 0.04)
-                : Colors.white.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: _pressed
-                  ? Colors.white.withValues(alpha: 0.22)
-                  : Colors.white.withValues(alpha: 0.10),
-            ),
+            color: Colors.white.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
           ),
           child: Row(
             children: [
-              // Icon container with gradient
               Container(
-                width: 40,
-                height: 40,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
-                  gradient: disabled
-                      ? const LinearGradient(
-                          colors: [Color(0x33FFFFFF), Color(0x22FFFFFF)],
-                        )
-                      : widget.gradient,
+                  color: file.color.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: disabled
-                      ? []
-                      : [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
+                  border: Border.all(color: file.color.withValues(alpha: 0.28)),
                 ),
-                child: Icon(widget.icon, color: Colors.white, size: 20),
+                child: Icon(file.icon, color: file.color, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -329,27 +385,51 @@ class _VaultActionTileState extends State<_VaultActionTile> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.label,
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: disabled
-                            ? Colors.white.withValues(alpha: 0.4)
-                            : Colors.white,
-                        fontWeight: FontWeight.w600,
+                      file.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        height: 1.1,
+                        letterSpacing: 0,
                       ),
                     ),
+                    const SizedBox(height: 3),
                     Text(
-                      widget.subtitle,
+                      file.status,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: Colors.white.withValues(alpha: 0.54),
+                        fontWeight: FontWeight.w600,
+                        height: 1.1,
+                        letterSpacing: 0,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: Colors.white.withValues(alpha: disabled ? 0.2 : 0.5),
-                size: 20,
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.more_vert_rounded,
+                    color: Colors.white.withValues(alpha: 0.64),
+                    size: 20,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    file.size,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.72),
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

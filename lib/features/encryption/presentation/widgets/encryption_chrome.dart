@@ -170,57 +170,65 @@ class EncryptionBottomNavigationBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(34),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            height: 62,
-            decoration: BoxDecoration(
-              color: const Color(0xF2F8F8F8),
+      child: SizedBox(
+        height: 76,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            ClipRRect(
               borderRadius: BorderRadius.circular(34),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.7),
-                width: 1.0,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x28000000),
-                  blurRadius: 28,
-                  offset: Offset(0, 12),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _BottomNavButton(
-                    icon: Icons.layers_rounded,
-                    label: 'Vault',
-                    selected: currentIndex == 0,
-                    onTap: () => onItemSelected(0),
-                  ),
-                ),
-                Expanded(
-                  child: Transform.translate(
-                    offset: const Offset(0, -12),
-                    child: _CenterNavButton(
-                      selected: currentIndex == 1,
-                      onTap: () => onItemSelected(1),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  height: 62,
+                  decoration: BoxDecoration(
+                    color: const Color(0xF2F8F8F8),
+                    borderRadius: BorderRadius.circular(34),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      width: 1.0,
                     ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x28000000),
+                        blurRadius: 28,
+                        offset: Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _BottomNavButton(
+                          icon: Icons.layers_rounded,
+                          label: 'Vault',
+                          selected: currentIndex == 0,
+                          onTap: () => onItemSelected(0),
+                        ),
+                      ),
+                      const SizedBox(width: 92),
+                      Expanded(
+                        child: _BottomNavButton(
+                          icon: Icons.shield_outlined,
+                          label: 'Security',
+                          selected: currentIndex == 2,
+                          onTap: () => onItemSelected(2),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Expanded(
-                  child: _BottomNavButton(
-                    icon: Icons.shield_outlined,
-                    label: 'Security',
-                    selected: currentIndex == 2,
-                    onTap: () => onItemSelected(2),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            Positioned(
+              top: 0,
+              child: _CenterNavButton(
+                selected: currentIndex == 1,
+                onTap: () => onItemSelected(1),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -370,27 +378,36 @@ class _CenterNavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-        width: 62,
-        height: 62,
-        decoration: BoxDecoration(
-          gradient: selected
-              ? AppGradients.accentHorizontal
-              : const LinearGradient(
-                  colors: [Color(0xFFE8EDF8), Color(0xFFD4DCF0)],
-                ),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 4),
-          boxShadow: selected ? AppShadows.navCenter : AppShadows.card,
-        ),
-        child: Icon(
-          Icons.apps_rounded,
-          color: selected ? Colors.white : AppColors.accentDark,
-          size: 26,
+    return Tooltip(
+      message: 'Encrypt',
+      child: Material(
+        type: MaterialType.transparency,
+        shape: const CircleBorder(),
+        child: InkResponse(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+            width: 62,
+            height: 62,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: selected
+                  ? AppGradients.accentHorizontal
+                  : const LinearGradient(
+                      colors: [Color(0xFFE8EDF8), Color(0xFFD4DCF0)],
+                    ),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 4),
+              boxShadow: selected ? AppShadows.navCenter : AppShadows.card,
+            ),
+            child: Icon(
+              Icons.apps_rounded,
+              color: selected ? Colors.white : AppColors.accentDark,
+              size: 26,
+            ),
+          ),
         ),
       ),
     );
