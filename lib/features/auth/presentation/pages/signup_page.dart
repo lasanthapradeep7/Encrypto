@@ -342,7 +342,7 @@ class _SignUpPageState extends State<SignUpPage>
                                                   _passwordController.text,
                                             );
 
-                                        if (!mounted) return;
+                                        if (!context.mounted) return;
 
                                         if (result["status"] == 200) {
                                           ScaffoldMessenger.of(

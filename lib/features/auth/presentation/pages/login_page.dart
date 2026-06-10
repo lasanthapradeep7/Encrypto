@@ -302,14 +302,9 @@ class _LoginPageState extends State<LoginPage>
                                     password: passwordController.text,
                                   );
 
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
 
                                   if (result["status"] == 200) {
-                                    final token =
-                                        result["body"]["access_token"];
-
-                                    print("JWT TOKEN: $token");
-
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text("Login Success"),
