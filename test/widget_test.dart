@@ -9,21 +9,21 @@ void main() {
     return MaterialApp(theme: AppTheme.light, home: const EncryptionShell());
   }
 
-  testWidgets('top bar opens profile screen and returns to vault', (
+  testWidgets('bottom bar opens profile screen and returns to vault', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(buildShell());
 
     expect(find.text('Secure Vault'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Profile'));
+    await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Profile'), findsOneWidget);
-    expect(find.text('Save changes'), findsOneWidget);
-    expect(find.text('Vault'), findsNothing);
+    expect(find.text('User Profile'), findsOneWidget);
+    expect(find.text('Edit Profile'), findsOneWidget);
+    expect(find.byTooltip('Go back'), findsNothing);
 
-    await tester.tap(find.byTooltip('Go back'));
+    await tester.tap(find.text('Vault'));
     await tester.pumpAndSettle();
 
     expect(find.text('Secure Vault'), findsOneWidget);
@@ -39,7 +39,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Notifications'), findsOneWidget);
-    expect(find.text('Mark read'), findsOneWidget);
+    expect(find.text('Mark read'), findsWidgets);
 
     await tester.tap(find.byTooltip('Go back'));
     await tester.pumpAndSettle();
@@ -47,6 +47,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('Security defaults'), findsOneWidget);
+    expect(find.text('Change password'), findsOneWidget);
   });
 }

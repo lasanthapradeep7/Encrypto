@@ -4,9 +4,14 @@ import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key, required this.onBackPressed});
+  const ProfilePage({
+    super.key,
+    this.onBackPressed,
+    this.showBackButton = true,
+  });
 
-  final VoidCallback onBackPressed;
+  final VoidCallback? onBackPressed;
+  final bool showBackButton;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -29,7 +34,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Column(
       children: [
         EncryptoTopBar(
-          showBackButton: true,
+          showBackButton: widget.showBackButton,
           onBackPressed: widget.onBackPressed,
         ),
         Expanded(

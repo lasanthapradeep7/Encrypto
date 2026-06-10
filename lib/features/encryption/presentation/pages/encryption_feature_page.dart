@@ -161,8 +161,8 @@ class _SetupView extends StatelessWidget {
           children: [
             Text(
               switch (mode) {
-                EncryptionMode.encrypt => 'Encrypt & Decrypt',
-                EncryptionMode.decrypt => 'Encrypt & Decrypt',
+                EncryptionMode.encrypt => 'Encrypt and Decrypt',
+                EncryptionMode.decrypt => 'Encrypt and Decrypt',
                 EncryptionMode.steganography => 'Steganography',
               },
               textAlign: TextAlign.center,
@@ -208,29 +208,29 @@ class _EncryptSetupContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionLabel(label: 'Cover image', icon: Icons.image_outlined),
+        _SectionLabel(label: 'Select Photo or File', icon: Icons.image_outlined),
         const SizedBox(height: 10),
         const _UploadCard(
-          label: 'Upload Cover Image',
-          hint: 'JPG, PNG up to 20MB',
+          label: 'Click to upload photo or file',
+          hint: 'JPG, PNG, PDF up to 20MB',
           icon: Icons.image_rounded,
         ),
         const SizedBox(height: 14),
         _SectionLabel(
-          label: 'Encrypted file',
+          label: 'Scan Document',
           icon: Icons.file_present_rounded,
         ),
         const SizedBox(height: 10),
         const _UploadCard(
-          label: 'Upload Encrypted File',
-          hint: 'Any file type',
+          label: 'Scan or attach a document',
+          hint: 'Scan or attach a document',
           icon: Icons.lock_outlined,
         ),
         const SizedBox(height: 22),
-        _SectionLabel(label: 'Encryption method', icon: Icons.settings_rounded),
+        _SectionLabel(label: 'Encryption Option', icon: Icons.settings_rounded),
         const SizedBox(height: 12),
         const _OptionRow(
-          label: 'Biometric',
+          label: 'Bio-metric',
           icon: Icons.fingerprint_rounded,
           color: Color(0xFF60A5FA),
         ),
@@ -242,7 +242,7 @@ class _EncryptSetupContent extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const _OptionRow(
-          label: 'Auto-generated Key',
+          label: 'Auto-gen Key',
           icon: Icons.key_rounded,
           color: Color(0xFF34D399),
         ),

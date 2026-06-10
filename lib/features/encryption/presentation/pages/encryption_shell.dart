@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
+import 'package:encrypto/features/encryption/presentation/pages/encrypt_home_page.dart';
 import 'package:encrypto/features/encryption/presentation/pages/encryption_feature_page.dart';
 import 'package:encrypto/features/encryption/presentation/pages/notifications_page.dart';
 import 'package:encrypto/features/encryption/presentation/pages/profile_page.dart';
@@ -18,40 +19,38 @@ class EncryptionShell extends StatefulWidget {
 
 class _EncryptionShellState extends State<EncryptionShell> {
   int _selectedIndex = 0;
-  int _lastPrimaryIndex = 0;
+  int _utilityReturnIndex = 0;
+  int _workflowReturnIndex = 1;
   EncryptionMode _workflowMode = EncryptionMode.encrypt;
   int _workflowResetToken = 0;
 
-  bool get _isPrimaryTab => _selectedIndex <= 2;
+  bool get _isPrimaryTab => _selectedIndex <= 3;
 
   void _selectTab(int index) {
     setState(() {
       _selectedIndex = index;
-      _lastPrimaryIndex = index;
     });
   }
 
-  void _openWorkflow(EncryptionMode mode) {
+  void _openWorkflow(EncryptionMode mode, {int returnIndex = 1}) {
     setState(() {
       _workflowMode = mode;
+      _workflowReturnIndex = returnIndex;
       _workflowResetToken++;
-      _selectedIndex = 1;
-      _lastPrimaryIndex = 1;
+      _selectedIndex = 6;
     });
   }
 
   void _openUtilityPage(int index) {
     setState(() {
-      if (_isPrimaryTab) {
-        _lastPrimaryIndex = _selectedIndex;
-      }
+      _utilityReturnIndex = _selectedIndex;
       _selectedIndex = index;
     });
   }
 
   void _closeUtilityPage() {
     setState(() {
-      _selectedIndex = _lastPrimaryIndex;
+      _selectedIndex = _utilityReturnIndex;
     });
   }
 
@@ -75,28 +74,41 @@ class _EncryptionShellState extends State<EncryptionShell> {
                             _openWorkflow(EncryptionMode.encrypt),
                         onOpenSteganographyWorkflow: () =>
                             _openWorkflow(EncryptionMode.steganography),
-                        onOpenProfile: () => _openUtilityPage(3),
+                        onOpenProfile: () => _selectTab(3),
                         onOpenNotifications: () => _openUtilityPage(4),
                         onOpenSettings: () => _openUtilityPage(5),
                       ),
-                      EncryptionFeaturePage(
-                        key: ValueKey<int>(_workflowResetToken),
-                        mode: _workflowMode,
-                        onBackPressed: () => _selectTab(0),
-                        onOpenProfile: () => _openUtilityPage(3),
+                      EncryptHomePage(
+                        onEncryptTap: () =>
+                            _openWorkflow(EncryptionMode.encrypt),
+                        onDecryptTap: () =>
+                            _openWorkflow(EncryptionMode.decrypt),
+                        onSteganographyTap: () =>
+                            _openWorkflow(EncryptionMode.steganography),
+                        onOpenProfile: () => _selectTab(3),
                         onOpenNotifications: () => _openUtilityPage(4),
                         onOpenSettings: () => _openUtilityPage(5),
                       ),
                       SecurityPage(
-                        onOpenWorkflow: () =>
-                            _openWorkflow(EncryptionMode.decrypt),
-                        onOpenProfile: () => _openUtilityPage(3),
+                        onOpenWorkflow: () => _openWorkflow(
+                          EncryptionMode.decrypt,
+                          returnIndex: 2,
+                        ),
+                        onOpenProfile: () => _selectTab(3),
                         onOpenNotifications: () => _openUtilityPage(4),
                         onOpenSettings: () => _openUtilityPage(5),
                       ),
-                      ProfilePage(onBackPressed: _closeUtilityPage),
+                      const ProfilePage(showBackButton: false),
                       NotificationsPage(onBackPressed: _closeUtilityPage),
                       SettingsPage(onBackPressed: _closeUtilityPage),
+                      EncryptionFeaturePage(
+                        key: ValueKey<int>(_workflowResetToken),
+                        mode: _workflowMode,
+                        onBackPressed: () => _selectTab(_workflowReturnIndex),
+                        onOpenProfile: () => _selectTab(3),
+                        onOpenNotifications: () => _openUtilityPage(4),
+                        onOpenSettings: () => _openUtilityPage(5),
+                      ),
                     ],
                   ),
                 ),
