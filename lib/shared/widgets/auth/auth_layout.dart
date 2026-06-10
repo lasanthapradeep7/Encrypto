@@ -123,13 +123,11 @@ class AuthTitleBlock extends StatelessWidget {
     required this.kicker,
     required this.title,
     required this.subtitle,
-    this.showBadge = true,
   });
 
   final String kicker;
   final String title;
   final String subtitle;
-  final bool showBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -140,10 +138,6 @@ class AuthTitleBlock extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (showBadge) ...[
-            _SecurityBadge(),
-            const SizedBox(height: 14),
-          ],
           Text(
             kicker.toUpperCase(),
             style: textTheme.labelSmall?.copyWith(
@@ -329,52 +323,6 @@ class GradientButton extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Private helpers
 // ---------------------------------------------------------------------------
-
-class _SecurityBadge extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: [
-            AppColors.accent.withValues(alpha: 0.20),
-            const Color(0xFF7C3AFF).withValues(alpha: 0.14),
-          ],
-        ),
-        border: Border.all(
-          color: AppColors.accent.withValues(alpha: 0.35),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ShaderMask(
-            blendMode: BlendMode.srcIn,
-            shaderCallback: (b) =>
-                AppGradients.accentHorizontal.createShader(b),
-            child: const Icon(Icons.shield_rounded, size: 13),
-          ),
-          const SizedBox(width: 5),
-          ShaderMask(
-            blendMode: BlendMode.srcIn,
-            shaderCallback: (b) =>
-                AppGradients.accentHorizontal.createShader(b),
-            child: Text(
-              'Military-grade encryption',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _AuraCircle extends StatelessWidget {
   const _AuraCircle({
