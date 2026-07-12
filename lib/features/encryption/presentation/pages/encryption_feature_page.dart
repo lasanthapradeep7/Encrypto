@@ -1,10 +1,18 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
 import 'dart:math' as math;
 
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
+import 'package:encrypto/services/api_service.dart';
+import 'package:encrypto/services/biometric_key_service.dart';
+
 
 enum EncryptionMode { encrypt, decrypt, steganography }
 
@@ -35,6 +43,33 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
   Timer? _completionTimer;
   EncryptionMode _activeMode = EncryptionMode.encrypt;
 
+  // Selected file details
+  String? _selectedFilePath;
+  String? _selectedFileName;
+
+  // Steganography file details
+  String? _stegoCoverImagePath;
+  String? _stegoCoverImageName;
+  String? _stegoFilePath;
+  String? _stegoFileName;
+  String? _stegoExtractImagePath;
+  String? _stegoExtractImageName;
+  String? _stegoDownloadFileName;
+
+  // Key / controller for inputs
+  String? _generatedKey;
+  final _keyController = TextEditingController();
+
+  // Dynamic progress indicators
+  _StepState _step1State = _StepState.pending;
+  _StepState _step2State = _StepState.pending;
+  _StepState _step3State = _StepState.pending;
+  String _progressPercentage = '0%';
+  String _currentProgressLabel = '';
+  String _fileSizeLabel = '0.0 KB';
+  int? _processedFileId;
+  Map<String, dynamic>? _aiAnalysis;
+
   @override
   void initState() {
     super.initState();
@@ -53,12 +88,27 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
   @override
   void dispose() {
     _completionTimer?.cancel();
+    _keyController.dispose();
     super.dispose();
   }
 
   void _resetFlow() {
     _completionTimer?.cancel();
-    setState(() => _stage = _WorkflowStage.setup);
+    setState(() {
+      _stage = _WorkflowStage.setup;
+      _selectedFilePath = null;
+      _selectedFileName = null;
+      _stegoCoverImagePath = null;
+      _stegoCoverImageName = null;
+      _stegoFilePath = null;
+      _stegoFileName = null;
+      _stegoExtractImagePath = null;
+      _stegoExtractImageName = null;
+      _generatedKey = null;
+      _keyController.clear();
+      _processedFileId = null;
+      _aiAnalysis = null;
+    });
   }
 
   void _setMode(EncryptionMode mode) {
@@ -70,20 +120,396 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
     });
   }
 
-  void _startWorkflow() {
-    _completionTimer?.cancel();
-    setState(() => _stage = _WorkflowStage.processing);
+  Future<void> _pickFile({
+    required bool isStegoCover,
+    required bool isStegoFile,
+    required bool isStegoExtract,
+  }) async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: (isStegoCover || isStegoExtract) ? FileType.image : FileType.any,
+      );
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          final path = result.files.single.path;
+          final name = result.files.single.name;
+          if (isStegoCover) {
+            _stegoCoverImagePath = path;
+            _stegoCoverImageName = name;
+          } else if (isStegoFile) {
+            _stegoFilePath = path;
+            _stegoFileName = name;
+          } else if (isStegoExtract) {
+            _stegoExtractImagePath = path;
+            _stegoExtractImageName = name;
+          } else {
+            _selectedFilePath = path;
+            _selectedFileName = name;
+            _aiAnalysis = null;
+          }
+        });
+        if (!isStegoCover && !isStegoFile && !isStegoExtract) {
+  await _uploadAndAnalyzeSelectedFile();
+}
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking file: $e')),
+        );
+      }
+    }
+  }
 
-    _completionTimer = Timer(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      setState(() => _stage = _WorkflowStage.success);
+  Future<void> _uploadAndAnalyzeSelectedFile() async {
+  if (_selectedFilePath == null || _selectedFileName == null) return;
+
+  try {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('AI analyzing selected file...')),
+    );
+
+    final uploadResult = await ApiService.uploadFile(_selectedFilePath!);
+
+    if (uploadResult['status'] != 200) {
+      throw Exception(uploadResult['body']?['detail'] ?? 'Upload failed');
+    }
+
+    final fileId = uploadResult['body']?['file_id'] as int;
+
+    final aiResult = await ApiService.analyzeFile(fileId);
+
+    if (aiResult['status'] != 200) {
+      throw Exception(aiResult['body']?['detail'] ?? 'AI analysis failed');
+    }
+
+    setState(() {
+      _processedFileId = fileId;
+      _aiAnalysis = aiResult['body'];
     });
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('AI analysis failed: $e')),
+    );
+  }
+}
+  void _startWorkflow() async {
+  String decryptionKey = '';
+
+  if (_activeMode == EncryptionMode.encrypt) {
+    if (_selectedFilePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a file to encrypt.')),
+      );
+      return;
+    }
+
+    final biometricOk = await BiometricKeyService.authenticate();
+
+    if (!biometricOk) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Biometric authentication failed.')),
+    );
+    return;
   }
 
-  void _cancelWorkflow() {
-    _completionTimer?.cancel();
-    setState(() => _stage = _WorkflowStage.setup);
+  } else if (_activeMode == EncryptionMode.decrypt) {
+    if (_selectedFilePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select an encrypted file.')),
+      );
+      return;
+    }
+
+    final biometricOk = await BiometricKeyService.authenticate();
+
+  if (!biometricOk) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Biometric authentication failed.')),
+    );
+    return;
   }
+
+
+    decryptionKey = _keyController.text.trim();
+
+    if (decryptionKey.isEmpty) {
+      if (_selectedFileName == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select encrypted file first.')),
+        );
+        return;
+      }
+
+      final savedKey = await BiometricKeyService.getKeyByFileName(
+        fileName: _selectedFileName!,
+      );
+
+      if (savedKey == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No biometric key found. Please enter key manually.'),
+          ),
+        );
+        return;
+      }
+
+      decryptionKey = savedKey;
+    }
+  } else if (_activeMode == EncryptionMode.steganography) {
+    if (_stegoExtractImagePath == null &&
+        (_stegoCoverImagePath == null || _stegoFilePath == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please select either stego cover + hidden file or a stego image to extract.',
+          ),
+        ),
+      );
+      return;
+    }
+  }
+
+  _completionTimer?.cancel();
+
+  setState(() {
+    _stage = _WorkflowStage.processing;
+    _step1State = _StepState.active;
+    _step2State = _StepState.pending;
+    _step3State = _StepState.pending;
+    _progressPercentage = '0%';
+    _currentProgressLabel = 'Preparing file...';
+    _fileSizeLabel = '0.0 KB';
+  });
+
+  try {
+    String pathForSize = '';
+
+    if (_activeMode == EncryptionMode.encrypt ||
+        _activeMode == EncryptionMode.decrypt) {
+      pathForSize = _selectedFilePath!;
+    } else {
+      pathForSize = _stegoExtractImagePath ?? _stegoFilePath!;
+    }
+
+    final file = File(pathForSize);
+    final sizeBytes = await file.length();
+    final sizeKb = sizeBytes / 1024.0;
+
+    setState(() {
+      _fileSizeLabel = '${sizeKb.toStringAsFixed(1)} KB';
+      _progressPercentage = '20%';
+      _currentProgressLabel = 'Uploading file to server...';
+    });
+
+    int? fileId;
+
+if (_activeMode == EncryptionMode.encrypt ||
+    _activeMode == EncryptionMode.decrypt) {
+  if (_processedFileId == null) {
+    final uploadResult = await ApiService.uploadFile(pathForSize);
+
+    if (uploadResult['status'] != 200) {
+      throw Exception(uploadResult['body']?['detail'] ?? 'Upload failed');
+    }
+
+    _processedFileId = uploadResult['body']?['file_id'] as int;
+  }
+
+  fileId = _processedFileId!;
+}
+  
+
+    setState(() {
+      _step1State = _StepState.done;
+      _step2State = _StepState.active;
+      _progressPercentage = '50%';
+      _currentProgressLabel = _activeMode == EncryptionMode.encrypt
+          ? 'Encrypting file data...'
+          : _activeMode == EncryptionMode.decrypt
+              ? 'Decrypting file data...'
+              : 'Processing steganography...';
+    });
+
+    if (_activeMode == EncryptionMode.encrypt) {
+      final encryptResult = await ApiService.encryptFile(fileId!);
+
+      if (encryptResult['status'] != 200) {
+        throw Exception(
+          encryptResult['body']?['detail'] ?? 'Encryption failed',
+        );
+      }
+
+      _generatedKey = encryptResult['body']?['key'] as String?;
+
+      if (_generatedKey != null && _selectedFileName != null) {
+        await BiometricKeyService.saveKeyByFileName(
+          fileName: 'enc_$_selectedFileName',
+          key: _generatedKey!,
+        );
+      }
+    } else if (_activeMode == EncryptionMode.decrypt) {
+      final decryptResult = await ApiService.decryptFile(
+        fileId: fileId!,
+        key: decryptionKey,
+      );
+
+      if (decryptResult['status'] != 200) {
+        throw Exception(
+          decryptResult['body']?['detail'] ?? 'Decryption failed',
+        );
+      }
+    } else {
+       // -----------------------------
+  // Steganography
+  // -----------------------------
+
+  if (_stegoExtractImagePath != null) {
+    // Extract hidden file
+
+    final result = await ApiService.extractStego(
+      stegoImagePath: _stegoExtractImagePath!,
+    );
+
+    if (result["status"] != 200) {
+      throw Exception(
+        result["body"]?["detail"] ?? "Stego extraction failed",
+      );
+    }
+
+    _stegoDownloadFileName =
+        result["body"]["extracted_filename"] as String?;
+  } else {
+    // Hide file inside image
+
+    final result = await ApiService.hideStego(
+      coverImagePath: _stegoCoverImagePath!,
+      hiddenFilePath: _stegoFilePath!,
+    );
+
+    if (result["status"] != 200) {
+      throw Exception(
+        result["body"]?["detail"] ?? "Stego hiding failed",
+      );
+    }
+
+    _stegoDownloadFileName =
+        result["body"]["stego_filename"] as String?;
+  }
+ }
+
+    setState(() {
+      _step2State = _StepState.done;
+      _step3State = _StepState.active;
+      _progressPercentage = '90%';
+      _currentProgressLabel = 'Finalizing...';
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
+    setState(() {
+      _step3State = _StepState.done;
+      _progressPercentage = '100%';
+      _stage = _WorkflowStage.success;
+    });
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Workflow failed: $e')),
+      );
+
+      setState(() {
+        _stage = _WorkflowStage.setup;
+      });
+    }
+  }
+}
+
+  Future<void> _downloadAndSaveFile({required String type}) async {
+  try {
+    List<int>? fileBytes;
+    String fileName = 'processed_file';
+
+    if (_activeMode == EncryptionMode.steganography) {
+      if (_stegoDownloadFileName == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No steganography file to download.')),
+        );
+        return;
+      }
+
+      fileBytes = await ApiService.downloadStegoFile(_stegoDownloadFileName!);
+      fileName = _stegoDownloadFileName!;
+    } else {
+      if (_processedFileId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No processed file to download.')),
+        );
+        return;
+      }
+
+      fileBytes = await ApiService.downloadFile(_processedFileId!, type);
+
+      fileName = _selectedFileName ?? 'processed_file';
+
+      if (type == 'encrypted') {
+        fileName = 'enc_$fileName';
+      } else if (type == 'decrypted') {
+        fileName = 'dec_$fileName';
+      }
+    }
+
+    if (fileBytes == null) {
+      throw Exception('Failed to download file.');
+    }
+
+    final savedPath = await FilePicker.saveFile(
+      dialogTitle: 'Save $fileName',
+      fileName: fileName,
+      type: FileType.any,
+      bytes: Uint8List.fromList(fileBytes),
+    );
+
+    if (!mounted) return;
+
+    if (savedPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Save cancelled')),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('File saved to $savedPath')),
+    );
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving file: $e')),
+      );
+    }
+  }
+}
+
+void _cancelWorkflow() {
+  _completionTimer?.cancel();
+  _completionTimer = null;
+
+  if (!mounted) return;
+
+  setState(() {
+    _stage = _WorkflowStage.setup;
+    _step1State = _StepState.pending;
+    _step2State = _StepState.pending;
+    _step3State = _StepState.pending;
+    _progressPercentage = '0%';
+    _currentProgressLabel = '';
+    _fileSizeLabel = '0.0 KB';
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -115,16 +541,56 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
                 mode: _activeMode,
                 onModeChanged: _setMode,
                 onStartPressed: _startWorkflow,
+                selectedFileName: _selectedFileName,
+                stegoCoverImageName: _stegoCoverImageName,
+                stegoFileName: _stegoFileName,
+                stegoExtractImageName: _stegoExtractImageName,
+                keyController: _keyController,
+                aiAnalysis: _aiAnalysis,
+                onPickFile: () => _pickFile(
+                  isStegoCover: false,
+                  isStegoFile: false,
+                  isStegoExtract: false,
+                ),
+                onPickStegoCover: () => _pickFile(
+                  isStegoCover: true,
+                  isStegoFile: false,
+                  isStegoExtract: false,
+                ),
+                onPickStegoFile: () => _pickFile(
+                  isStegoCover: false,
+                  isStegoFile: true,
+                  isStegoExtract: false,
+                ),
+                onPickStegoExtract: () => _pickFile(
+                  isStegoCover: false,
+                  isStegoFile: false,
+                  isStegoExtract: true,
+                ),
               ),
               _WorkflowStage.processing => _ProcessingView(
                 key: const ValueKey('processing'),
                 mode: _activeMode,
                 onCancelPressed: _cancelWorkflow,
+                step1State: _step1State,
+                step2State: _step2State,
+                step3State: _step3State,
+                progressPercentage: _progressPercentage,
+                currentProgressLabel: _currentProgressLabel,
+                fileSizeLabel: _fileSizeLabel,
               ),
               _WorkflowStage.success => _SuccessView(
                 key: const ValueKey('success'),
                 mode: _activeMode,
                 onRepeatPressed: _resetFlow,
+                generatedKey: _generatedKey,
+                onDownload: () => _downloadAndSaveFile(
+  type: _activeMode == EncryptionMode.encrypt
+      ? 'encrypted'
+      : _activeMode == EncryptionMode.decrypt
+          ? 'decrypted'
+          : 'stego',
+),
               ),
             },
           ),
@@ -133,7 +599,6 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
     );
   }
 }
-
 // ---------------------------------------------------------------------------
 // Setup view
 // ---------------------------------------------------------------------------
@@ -143,11 +608,31 @@ class _SetupView extends StatelessWidget {
     required this.mode,
     required this.onModeChanged,
     required this.onStartPressed,
+    required this.selectedFileName,
+    required this.stegoCoverImageName,
+    required this.stegoFileName,
+    required this.stegoExtractImageName,
+    required this.keyController,
+    required this.onPickFile,
+    required this.onPickStegoCover,
+    required this.onPickStegoFile,
+    required this.onPickStegoExtract,
+    required this.aiAnalysis,
   });
 
   final EncryptionMode mode;
   final ValueChanged<EncryptionMode> onModeChanged;
   final VoidCallback onStartPressed;
+  final String? selectedFileName;
+  final String? stegoCoverImageName;
+  final String? stegoFileName;
+  final String? stegoExtractImageName;
+  final TextEditingController keyController;
+  final VoidCallback onPickFile;
+  final VoidCallback onPickStegoCover;
+  final VoidCallback onPickStegoFile;
+  final VoidCallback onPickStegoExtract;
+  final Map<String, dynamic>? aiAnalysis;
 
   @override
   Widget build(BuildContext context) {
@@ -180,12 +665,24 @@ class _SetupView extends StatelessWidget {
             switch (mode) {
               EncryptionMode.encrypt => _EncryptSetupContent(
                 onStartPressed: onStartPressed,
+                selectedFileName: selectedFileName,
+                onPickFile: onPickFile,
+                aiAnalysis: aiAnalysis,
               ),
               EncryptionMode.decrypt => _DecryptSetupContent(
                 onStartPressed: onStartPressed,
+                selectedFileName: selectedFileName,
+                keyController: keyController,
+                onPickFile: onPickFile,
               ),
               EncryptionMode.steganography => _SteganographySetupContent(
                 onStartPressed: onStartPressed,
+                stegoCoverImageName: stegoCoverImageName,
+                stegoFileName: stegoFileName,
+                stegoExtractImageName: stegoExtractImageName,
+                onPickStegoCover: onPickStegoCover,
+                onPickStegoFile: onPickStegoFile,
+                onPickStegoExtract: onPickStegoExtract,
               ),
             },
           ],
@@ -199,9 +696,17 @@ class _SetupView extends StatelessWidget {
 // Encrypt setup
 // ---------------------------------------------------------------------------
 class _EncryptSetupContent extends StatelessWidget {
-  const _EncryptSetupContent({required this.onStartPressed});
+  const _EncryptSetupContent({
+    required this.onStartPressed,
+    required this.selectedFileName,
+    required this.onPickFile,
+    required this.aiAnalysis,
+  });
 
   final VoidCallback onStartPressed;
+  final String? selectedFileName;
+  final VoidCallback onPickFile;
+  final Map<String, dynamic>? aiAnalysis;
 
   @override
   Widget build(BuildContext context) {
@@ -210,10 +715,11 @@ class _EncryptSetupContent extends StatelessWidget {
       children: [
         _SectionLabel(label: 'Select Photo or File', icon: Icons.image_outlined),
         const SizedBox(height: 10),
-        const _UploadCard(
-          label: 'Click to upload photo or file',
-          hint: 'JPG, PNG, PDF up to 20MB',
-          icon: Icons.image_rounded,
+        _UploadCard(
+          label: selectedFileName ?? 'Click to upload photo or file',
+          hint: selectedFileName != null ? 'File picked successfully' : 'JPG, PNG, PDF up to 20MB',
+          icon: selectedFileName != null ? Icons.verified_user_rounded : Icons.image_rounded,
+          onTap: onPickFile,
         ),
         const SizedBox(height: 14),
         _SectionLabel(
@@ -221,10 +727,11 @@ class _EncryptSetupContent extends StatelessWidget {
           icon: Icons.file_present_rounded,
         ),
         const SizedBox(height: 10),
-        const _UploadCard(
-          label: 'Scan or attach a document',
-          hint: 'Scan or attach a document',
-          icon: Icons.lock_outlined,
+        _UploadCard(
+          label: selectedFileName ?? 'Scan or attach a document',
+          hint: selectedFileName != null ? 'Document picked successfully' : 'Scan or attach a document',
+          icon: selectedFileName != null ? Icons.verified_user_rounded : Icons.lock_outlined,
+          onTap: onPickFile,
         ),
         const SizedBox(height: 22),
         _SectionLabel(label: 'Encryption Option', icon: Icons.settings_rounded),
@@ -247,6 +754,86 @@ class _EncryptSetupContent extends StatelessWidget {
           color: Color(0xFF34D399),
         ),
         const SizedBox(height: 22),
+        if (aiAnalysis != null) ...[
+  const SizedBox(height: 20),
+  Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.06),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.auto_awesome_rounded, color: Color(0xFF60A5FA)),
+            const SizedBox(width: 8),
+            Text(
+              'AI Security Advisor',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'Risk Level : ${aiAnalysis!['risk_level']}',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          'Confidence : ${aiAnalysis!['confidence'] ?? '-'}%',
+          style: const TextStyle(color: Colors.white),
+        ),
+        Text(
+          'Risk Score : ${aiAnalysis!['risk_score']}',
+          style: const TextStyle(color: Colors.white),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          aiAnalysis!['reason'] ?? '',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Detected:',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 6),
+        ...((aiAnalysis!['findings'] as List?) ?? []).map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 16),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    item.toString(),
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Recommended : ${aiAnalysis!['recommendation']}',
+          style: const TextStyle(
+            color: Colors.greenAccent,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    ),
+  ),
+  const SizedBox(height: 20),
+],
+
         _GradientCTAButton(
           label: 'Start Encryption',
           onPressed: onStartPressed,
@@ -260,9 +847,17 @@ class _EncryptSetupContent extends StatelessWidget {
 // Decrypt setup
 // ---------------------------------------------------------------------------
 class _DecryptSetupContent extends StatefulWidget {
-  const _DecryptSetupContent({required this.onStartPressed});
+  const _DecryptSetupContent({
+    required this.onStartPressed,
+    required this.selectedFileName,
+    required this.keyController,
+    required this.onPickFile,
+  });
 
   final VoidCallback onStartPressed;
+  final String? selectedFileName;
+  final TextEditingController keyController;
+  final VoidCallback onPickFile;
 
   @override
   State<_DecryptSetupContent> createState() => _DecryptSetupContentState();
@@ -281,15 +876,17 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
       children: [
         _SectionLabel(label: 'Select file', icon: Icons.file_present_rounded),
         const SizedBox(height: 10),
-        const _UploadCard(
-          label: 'Upload Encrypted File',
-          hint: 'Drop your file here',
-          icon: Icons.lock_outlined,
+        _UploadCard(
+          label: widget.selectedFileName ?? 'Upload Encrypted File',
+          hint: widget.selectedFileName != null ? 'Encrypted file picked' : 'Drop your file here',
+          icon: widget.selectedFileName != null ? Icons.verified_user_rounded : Icons.lock_outlined,
+          onTap: widget.onPickFile,
         ),
         const SizedBox(height: 18),
         _SectionLabel(label: 'Decryption key', icon: Icons.key_rounded),
         const SizedBox(height: 10),
         TextField(
+          controller: widget.keyController,
           obscureText: _obscurePassword,
           style: textTheme.bodyLarge?.copyWith(color: Colors.white),
           decoration: InputDecoration(
@@ -386,9 +983,23 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
 // Steganography setup
 // ---------------------------------------------------------------------------
 class _SteganographySetupContent extends StatelessWidget {
-  const _SteganographySetupContent({required this.onStartPressed});
+  const _SteganographySetupContent({
+    required this.onStartPressed,
+    required this.stegoCoverImageName,
+    required this.stegoFileName,
+    required this.stegoExtractImageName,
+    required this.onPickStegoCover,
+    required this.onPickStegoFile,
+    required this.onPickStegoExtract,
+  });
 
   final VoidCallback onStartPressed;
+  final String? stegoCoverImageName;
+  final String? stegoFileName;
+  final String? stegoExtractImageName;
+  final VoidCallback onPickStegoCover;
+  final VoidCallback onPickStegoFile;
+  final VoidCallback onPickStegoExtract;
 
   @override
   Widget build(BuildContext context) {
@@ -400,16 +1011,18 @@ class _SteganographySetupContent extends StatelessWidget {
           icon: Icons.hide_image_rounded,
         ),
         const SizedBox(height: 10),
-        const _UploadCard(
-          label: 'Upload Cover Image',
-          hint: 'The carrier image',
-          icon: Icons.image_rounded,
+        _UploadCard(
+          label: stegoCoverImageName ?? 'Upload Cover Image',
+          hint: stegoCoverImageName != null ? 'Cover image loaded' : 'The carrier image',
+          icon: stegoCoverImageName != null ? Icons.verified_user_rounded : Icons.image_rounded,
+          onTap: onPickStegoCover,
         ),
         const SizedBox(height: 10),
-        const _UploadCard(
-          label: 'Upload Encrypted File',
-          hint: 'Data to hide',
-          icon: Icons.lock_outlined,
+        _UploadCard(
+          label: stegoFileName ?? 'Upload Encrypted File',
+          hint: stegoFileName != null ? 'File to hide loaded' : 'Data to hide',
+          icon: stegoFileName != null ? Icons.verified_user_rounded : Icons.lock_outlined,
+          onTap: onPickStegoFile,
         ),
         const SizedBox(height: 18),
         _GradientCTAButton(label: 'Hide Data', onPressed: onStartPressed),
@@ -443,10 +1056,11 @@ class _SteganographySetupContent extends StatelessWidget {
         const SizedBox(height: 18),
         _SectionLabel(label: 'Stego image', icon: Icons.image_search_rounded),
         const SizedBox(height: 10),
-        const _UploadCard(
-          label: 'Upload Stego Image',
-          hint: 'Image with hidden data',
-          icon: Icons.image_search_rounded,
+        _UploadCard(
+          label: stegoExtractImageName ?? 'Upload Stego Image',
+          hint: stegoExtractImageName != null ? 'Stego image loaded' : 'Image with hidden data',
+          icon: stegoExtractImageName != null ? Icons.verified_user_rounded : Icons.image_search_rounded,
+          onTap: onPickStegoExtract,
         ),
         const SizedBox(height: 18),
         _GradientCTAButton(label: 'Extract & Share', onPressed: onStartPressed),
@@ -463,10 +1077,22 @@ class _ProcessingView extends StatelessWidget {
     super.key,
     required this.mode,
     required this.onCancelPressed,
+    required this.step1State,
+    required this.step2State,
+    required this.step3State,
+    required this.progressPercentage,
+    required this.currentProgressLabel,
+    required this.fileSizeLabel,
   });
 
   final EncryptionMode mode;
   final VoidCallback onCancelPressed;
+  final _StepState step1State;
+  final _StepState step2State;
+  final _StepState step3State;
+  final String progressPercentage;
+  final String currentProgressLabel;
+  final String fileSizeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -498,7 +1124,7 @@ class _ProcessingView extends StatelessWidget {
               shaderCallback: (b) =>
                   AppGradients.accentHorizontal.createShader(b),
               child: Text(
-                '78%',
+                progressPercentage,
                 style: textTheme.displayLarge?.copyWith(
                   fontWeight: FontWeight.w900,
                   fontSize: 64,
@@ -507,18 +1133,14 @@ class _ProcessingView extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              switch (mode) {
-                EncryptionMode.encrypt => 'Encrypting file…',
-                EncryptionMode.decrypt => 'Decrypting file…',
-                EncryptionMode.steganography => 'Processing…',
-              },
+              currentProgressLabel,
               style: textTheme.titleMedium?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
             ),
             Text(
-              '1.8 MB',
+              fileSizeLabel,
               style: textTheme.bodyMedium?.copyWith(
                 color: Colors.white.withValues(alpha: 0.55),
               ),
@@ -529,26 +1151,22 @@ class _ProcessingView extends StatelessWidget {
               child: Column(
                 children: [
                   _ProgressStep(
-                    label: 'Initializing AI key',
-                    state: _StepState.done,
+                    label: 'Initializing key & uploading',
+                    state: step1State,
                   ),
                   const SizedBox(height: 10),
                   _ProgressStep(
                     label: switch (mode) {
-                      EncryptionMode.encrypt => 'Applying steganography',
-                      EncryptionMode.decrypt => 'Retrieving hidden data',
-                      EncryptionMode.steganography => 'Applying hidden data',
-                    },
-                    state: _StepState.active,
-                  ),
-                  const SizedBox(height: 10),
-                  _ProgressStep(
-                    label: switch (mode) {
-                      EncryptionMode.encrypt => 'Encrypting data',
+                      EncryptionMode.encrypt => 'Applying encryption',
                       EncryptionMode.decrypt => 'Decrypting file',
-                      EncryptionMode.steganography => 'Hiding data',
+                      EncryptionMode.steganography => 'Applying steganography',
                     },
-                    state: _StepState.pending,
+                    state: step2State,
+                  ),
+                  const SizedBox(height: 10),
+                  _ProgressStep(
+                    label: 'Finalizing process',
+                    state: step3State,
                   ),
                 ],
               ),
@@ -585,10 +1203,14 @@ class _SuccessView extends StatefulWidget {
     super.key,
     required this.mode,
     required this.onRepeatPressed,
+    this.generatedKey,
+    required this.onDownload,
   });
 
   final EncryptionMode mode;
   final VoidCallback onRepeatPressed;
+  final String? generatedKey;
+  final VoidCallback onDownload;
 
   @override
   State<_SuccessView> createState() => _SuccessViewState();
@@ -638,7 +1260,7 @@ class _SuccessViewState extends State<_SuccessView> {
               switch (widget.mode) {
                 EncryptionMode.encrypt => 'File successfully encrypted.',
                 EncryptionMode.decrypt => 'File successfully decrypted.',
-                EncryptionMode.steganography => 'Data successfully hidden.',
+                _ => 'Steganography complete.',
               },
               style: textTheme.titleMedium?.copyWith(
                 color: Colors.white,
@@ -646,6 +1268,38 @@ class _SuccessViewState extends State<_SuccessView> {
               ),
             ),
             const SizedBox(height: 22),
+            if (widget.mode == EncryptionMode.encrypt) ...[
+  EncryptionSurfaceCard(
+    padding: const EdgeInsets.all(16),
+    child: Column(
+      children: [
+        const Icon(
+          Icons.fingerprint_rounded,
+          color: Color(0xFF60A5FA),
+          size: 28,
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Encryption Key Secured',
+          style: textTheme.titleSmall?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Your encryption key is protected with biometric authentication. Use fingerprint or face unlock during decryption.',
+          textAlign: TextAlign.center,
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.white.withValues(alpha: 0.78),
+            height: 1.4,
+          ),
+        ),
+      ],
+    ),
+  ),
+  const SizedBox(height: 18),
+],
             if (widget.mode == EncryptionMode.decrypt) ...[
               EncryptionSurfaceCard(
                 child: Column(
@@ -671,14 +1325,18 @@ class _SuccessViewState extends State<_SuccessView> {
               _GradientCTAButton(
                 label: 'Share File',
                 icon: Icons.share_rounded,
-                onPressed: () {},
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Share option is not configured. Use Download to save the file.')),
+                  );
+                },
               ),
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: widget.onDownload,
                   icon: const Icon(Icons.download_rounded),
                   label: const Text('Download'),
                   style: OutlinedButton.styleFrom(
@@ -696,14 +1354,18 @@ class _SuccessViewState extends State<_SuccessView> {
               _GradientCTAButton(
                 label: 'Save File Locally',
                 icon: Icons.save_alt_rounded,
-                onPressed: () {},
+                onPressed: widget.onDownload,
               ),
               const SizedBox(height: 10),
               _GradientCTAButton(
                 label: 'Upload to Cloud',
                 icon: Icons.cloud_upload_rounded,
                 gradient: AppGradients.success,
-                onPressed: () {},
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('File is already securely saved on the server.')),
+                  );
+                },
               ),
               const SizedBox(height: 8),
               Row(
@@ -768,11 +1430,13 @@ class _UploadCard extends StatefulWidget {
     required this.label,
     required this.hint,
     required this.icon,
+    this.onTap,
   });
 
   final String label;
   final String hint;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   State<_UploadCard> createState() => _UploadCardState();
@@ -789,7 +1453,7 @@ class _UploadCardState extends State<_UploadCard> {
       onTapDown: (_) => setState(() => _hovered = true),
       onTapUp: (_) => setState(() => _hovered = false),
       onTapCancel: () => setState(() => _hovered = false),
-      onTap: () {},
+      onTap: widget.onTap,
       child: AnimatedScale(
         scale: _hovered ? 0.97 : 1.0,
         duration: const Duration(milliseconds: 120),
@@ -819,24 +1483,30 @@ class _UploadCardState extends State<_UploadCard> {
                   child: Icon(widget.icon, size: 28),
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.label,
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    Text(
-                      widget.hint,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.45),
+                      Text(
+                        widget.hint,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.45),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1062,6 +1732,7 @@ class _ProgressStep extends StatelessWidget {
         Colors.white.withValues(alpha: 0.3),
       ),
     };
+    
 
     return Row(
       children: [
