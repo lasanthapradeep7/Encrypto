@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
 
-  static const String baseUrl = "http://10.0.2.2:8000";
+  static const String baseUrl = "https://encrypto-backend-sdys.onrender.com";
 
   static Future<Map<String, dynamic>> register({
     required String fullName,
@@ -162,5 +162,39 @@ static Future<List<int>?> downloadStegoFile(String filename) async {
   return null;
 }
 
+static Future<Map<String, dynamic>> encryptFileWithPassword({
+  required int fileId,
+  required String password,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/crypto/encrypt-password/$fileId'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'password': password}),
+  );
+
+  return {
+    'status': response.statusCode,
+    'body': jsonDecode(response.body),
+  };
 }
 
+static Future<Map<String, dynamic>> decryptFileWithPassword({
+  required int fileId,
+  required String password,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/crypto/decrypt-password/$fileId'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'password': password}),
+  );
+
+  return {
+    'status': response.statusCode,
+    'body': jsonDecode(response.body),
+  };
+}
+
+
+
+
+}

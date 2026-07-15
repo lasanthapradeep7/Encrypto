@@ -16,6 +16,12 @@ import 'package:encrypto/services/biometric_key_service.dart';
 
 enum EncryptionMode { encrypt, decrypt, steganography }
 
+enum ProtectionMethod {
+  biometric,
+  hybrid,
+  passwordOnly,
+}
+
 enum _WorkflowStage { setup, processing, success }
 
 class EncryptionFeaturePage extends StatefulWidget {
@@ -60,6 +66,20 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
   String? _generatedKey;
   final _keyController = TextEditingController();
 
+ProtectionMethod _protectionMethod = ProtectionMethod.biometric;
+
+final TextEditingController _hybridPasswordController =
+    TextEditingController();
+
+final TextEditingController _hybridConfirmPasswordController =
+    TextEditingController();
+
+final TextEditingController _stegoPasswordController =
+    TextEditingController();
+
+final TextEditingController _stegoConfirmPasswordController =
+    TextEditingController();
+
   // Dynamic progress indicators
   _StepState _step1State = _StepState.pending;
   _StepState _step2State = _StepState.pending;
@@ -86,11 +106,17 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
   }
 
   @override
-  void dispose() {
-    _completionTimer?.cancel();
-    _keyController.dispose();
-    super.dispose();
-  }
+void dispose() {
+  _completionTimer?.cancel();
+
+  _keyController.dispose();
+  _hybridPasswordController.dispose();
+  _hybridConfirmPasswordController.dispose();
+  _stegoPasswordController.dispose();
+  _stegoConfirmPasswordController.dispose();
+
+  super.dispose();
+}
 
   void _resetFlow() {
     _completionTimer?.cancel();
@@ -108,6 +134,15 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
       _keyController.clear();
       _processedFileId = null;
       _aiAnalysis = null;
+      _protectionMethod = ProtectionMethod.biometric;
+
+      _hybridPasswordController.clear();
+      _hybridConfirmPasswordController.clear();
+
+      _stegoPasswordController.clear();
+      _stegoConfirmPasswordController.clear();
+
+      _stegoDownloadFileName = null;
     });
   }
 
@@ -201,63 +236,140 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
   if (_activeMode == EncryptionMode.encrypt) {
     if (_selectedFilePath == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a file to encrypt.')),
+        const SnackBar(
+          content: Text('Please select a file to encrypt.'),
+        ),
       );
       return;
     }
 
-    final biometricOk = await BiometricKeyService.authenticate();
+    // Hybrid password validation
+    final methodName =
+    _protectionMethod == ProtectionMethod.hybrid
+        ? 'Hybrid'
+        : 'Password';
+    if (_protectionMethod == ProtectionMethod.hybrid ||
+    _protectionMethod == ProtectionMethod.passwordOnly) {
+      final password = _hybridPasswordController.text.trim();
+      final confirmPassword =
+          _hybridConfirmPasswordController.text.trim();
 
-    if (!biometricOk) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Biometric authentication failed.')),
-    );
-    return;
-  }
-
-  } else if (_activeMode == EncryptionMode.decrypt) {
-    if (_selectedFilePath == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select an encrypted file.')),
-      );
-      return;
-    }
-
-    final biometricOk = await BiometricKeyService.authenticate();
-
-  if (!biometricOk) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Biometric authentication failed.')),
-    );
-    return;
-  }
-
-
-    decryptionKey = _keyController.text.trim();
-
-    if (decryptionKey.isEmpty) {
-      if (_selectedFileName == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select encrypted file first.')),
-        );
-        return;
-      }
-
-      final savedKey = await BiometricKeyService.getKeyByFileName(
-        fileName: _selectedFileName!,
-      );
-
-      if (savedKey == null) {
+      if (password.isEmpty || confirmPassword.isEmpty) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        'Please enter and confirm the $methodName password.',
+      ),
+    ),
+  );
+  return;
+}
+      if (password.length < 6) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('No biometric key found. Please enter key manually.'),
+            content: Text(
+              'Hybrid password must contain at least 6 characters.',
+            ),
           ),
         );
         return;
       }
 
-      decryptionKey = savedKey;
+      if (password != confirmPassword) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Hybrid passwords do not match.'),
+          ),
+        );
+        return;
+      }
     }
+
+    // Biometric and Hybrid both require biometric authentication
+    if (_protectionMethod == ProtectionMethod.biometric ||
+    _protectionMethod == ProtectionMethod.hybrid) {
+    final biometricOk = await BiometricKeyService.authenticate();
+
+    if (!biometricOk) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Biometric authentication failed.'),
+        ),
+      );
+      return;
+    }
+    }
+  } else if (_activeMode == EncryptionMode.decrypt) {
+  if (_selectedFilePath == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Please select an encrypted file.'),
+      ),
+    );
+    return;
+  }
+
+  if (_protectionMethod == ProtectionMethod.biometric ||
+      _protectionMethod == ProtectionMethod.hybrid) {
+    final biometricOk = await BiometricKeyService.authenticate();
+
+    if (!biometricOk) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Biometric authentication failed.'),
+        ),
+      );
+      return;
+    }
+  }
+
+  if (_protectionMethod == ProtectionMethod.biometric) {
+    if (_selectedFileName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select encrypted file first.'),
+        ),
+      );
+      return;
+    }
+
+    final savedKey = await BiometricKeyService.getKeyByFileName(
+      fileName: _selectedFileName!,
+    );
+
+    if (savedKey == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No biometric key found for this file.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    decryptionKey = savedKey;
+  } else {
+    decryptionKey = _keyController.text.trim();
+
+    if (decryptionKey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _protectionMethod == ProtectionMethod.hybrid
+                ? 'Please enter the hybrid password.'
+                : 'Please enter the sharing password.',
+          ),
+        ),
+      );
+      return;
+    }
+  }
+  
   } else if (_activeMode == EncryptionMode.steganography) {
     if (_stegoExtractImagePath == null &&
         (_stegoCoverImagePath == null || _stegoFilePath == null)) {
@@ -271,6 +383,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
       return;
     }
   }
+
 
   _completionTimer?.cancel();
 
@@ -334,34 +447,63 @@ if (_activeMode == EncryptionMode.encrypt ||
     });
 
     if (_activeMode == EncryptionMode.encrypt) {
-      final encryptResult = await ApiService.encryptFile(fileId!);
+  Map<String, dynamic> encryptResult;
 
-      if (encryptResult['status'] != 200) {
-        throw Exception(
-          encryptResult['body']?['detail'] ?? 'Encryption failed',
-        );
-      }
+  if (_protectionMethod == ProtectionMethod.hybrid ||
+    _protectionMethod == ProtectionMethod.passwordOnly) {
+  encryptResult = await ApiService.encryptFileWithPassword(
+    fileId: fileId!,
+    password: _hybridPasswordController.text.trim(),
+  );
+} else {
+  encryptResult = await ApiService.encryptFile(fileId!);
+}
 
-      _generatedKey = encryptResult['body']?['key'] as String?;
+  if (encryptResult['status'] != 200) {
+    throw Exception(
+      encryptResult['body']?['detail'] ?? 'Encryption failed',
+    );
+  }
 
-      if (_generatedKey != null && _selectedFileName != null) {
-        await BiometricKeyService.saveKeyByFileName(
-          fileName: 'enc_$_selectedFileName',
-          key: _generatedKey!,
-        );
-      }
-    } else if (_activeMode == EncryptionMode.decrypt) {
-      final decryptResult = await ApiService.decryptFile(
-        fileId: fileId!,
-        key: decryptionKey,
+  if (_protectionMethod == ProtectionMethod.biometric) {
+    _generatedKey = encryptResult['body']?['key'] as String?;
+
+    if (_generatedKey != null && _selectedFileName != null) {
+      await BiometricKeyService.saveKeyByFileName(
+        fileName: 'enc_$_selectedFileName',
+        key: _generatedKey!,
       );
+    }
+  } else {
+    _generatedKey = null;
+  }
+} else if (_activeMode == EncryptionMode.decrypt) {
 
-      if (decryptResult['status'] != 200) {
-        throw Exception(
-          decryptResult['body']?['detail'] ?? 'Decryption failed',
-        );
-      }
-    } else {
+  Map<String, dynamic> decryptResult;
+
+  if (_protectionMethod == ProtectionMethod.biometric) {
+
+    decryptResult = await ApiService.decryptFile(
+      fileId: fileId!,
+      key: decryptionKey,
+    );
+
+  } else {
+
+    decryptResult = await ApiService.decryptFileWithPassword(
+      fileId: fileId!,
+      password: decryptionKey,
+    );
+
+  }
+
+  if (decryptResult['status'] != 200) {
+    throw Exception(
+      decryptResult['body']?['detail'] ?? 'Decryption failed',
+    );
+  }
+
+} else {
        // -----------------------------
   // Steganography
   // -----------------------------
@@ -547,6 +689,16 @@ void _cancelWorkflow() {
                 stegoExtractImageName: _stegoExtractImageName,
                 keyController: _keyController,
                 aiAnalysis: _aiAnalysis,
+                protectionMethod: _protectionMethod,
+                onProtectionMethodChanged: (method) {
+                  setState(() {
+                    _protectionMethod = method;
+                  });
+                },
+                hybridPasswordController: _hybridPasswordController,
+                hybridConfirmPasswordController: _hybridConfirmPasswordController,
+                stegoPasswordController: _stegoPasswordController,
+                stegoConfirmPasswordController: _stegoConfirmPasswordController,
                 onPickFile: () => _pickFile(
                   isStegoCover: false,
                   isStegoFile: false,
@@ -618,6 +770,12 @@ class _SetupView extends StatelessWidget {
     required this.onPickStegoFile,
     required this.onPickStegoExtract,
     required this.aiAnalysis,
+    required this.protectionMethod,
+    required this.onProtectionMethodChanged,
+    required this.hybridPasswordController,
+    required this.hybridConfirmPasswordController,
+    required this.stegoPasswordController,
+    required this.stegoConfirmPasswordController,
   });
 
   final EncryptionMode mode;
@@ -633,6 +791,12 @@ class _SetupView extends StatelessWidget {
   final VoidCallback onPickStegoFile;
   final VoidCallback onPickStegoExtract;
   final Map<String, dynamic>? aiAnalysis;
+  final ProtectionMethod protectionMethod;
+  final ValueChanged<ProtectionMethod> onProtectionMethodChanged;
+  final TextEditingController hybridPasswordController;
+  final TextEditingController hybridConfirmPasswordController;
+  final TextEditingController stegoPasswordController;
+  final TextEditingController stegoConfirmPasswordController;
 
   @override
   Widget build(BuildContext context) {
@@ -664,26 +828,34 @@ class _SetupView extends StatelessWidget {
             const SizedBox(height: 22),
             switch (mode) {
               EncryptionMode.encrypt => _EncryptSetupContent(
-                onStartPressed: onStartPressed,
-                selectedFileName: selectedFileName,
-                onPickFile: onPickFile,
-                aiAnalysis: aiAnalysis,
-              ),
-              EncryptionMode.decrypt => _DecryptSetupContent(
-                onStartPressed: onStartPressed,
-                selectedFileName: selectedFileName,
-                keyController: keyController,
-                onPickFile: onPickFile,
-              ),
+              onStartPressed: onStartPressed,
+              selectedFileName: selectedFileName,
+              onPickFile: onPickFile,
+              aiAnalysis: aiAnalysis,
+              protectionMethod: protectionMethod,
+              onProtectionMethodChanged: onProtectionMethodChanged,
+              passwordController: hybridPasswordController,
+              confirmPasswordController: hybridConfirmPasswordController,
+),
+             EncryptionMode.decrypt => _DecryptSetupContent(
+            onStartPressed: onStartPressed,
+            selectedFileName: selectedFileName,
+            keyController: keyController,
+            onPickFile: onPickFile,
+            protectionMethod: protectionMethod,
+            onProtectionMethodChanged: onProtectionMethodChanged,
+),
               EncryptionMode.steganography => _SteganographySetupContent(
-                onStartPressed: onStartPressed,
-                stegoCoverImageName: stegoCoverImageName,
-                stegoFileName: stegoFileName,
-                stegoExtractImageName: stegoExtractImageName,
-                onPickStegoCover: onPickStegoCover,
-                onPickStegoFile: onPickStegoFile,
-                onPickStegoExtract: onPickStegoExtract,
-              ),
+              onStartPressed: onStartPressed,
+              stegoCoverImageName: stegoCoverImageName,
+              stegoFileName: stegoFileName,
+              stegoExtractImageName: stegoExtractImageName,
+              onPickStegoCover: onPickStegoCover,
+              onPickStegoFile: onPickStegoFile,
+              onPickStegoExtract: onPickStegoExtract,
+              passwordController: stegoPasswordController,
+              confirmPasswordController: stegoConfirmPasswordController,
+),
             },
           ],
         ),
@@ -701,6 +873,10 @@ class _EncryptSetupContent extends StatelessWidget {
     required this.selectedFileName,
     required this.onPickFile,
     required this.aiAnalysis,
+    required this.protectionMethod,
+    required this.onProtectionMethodChanged,
+    required this.passwordController,
+    required this.confirmPasswordController,
   });
 
   final VoidCallback onStartPressed;
@@ -708,6 +884,11 @@ class _EncryptSetupContent extends StatelessWidget {
   final VoidCallback onPickFile;
   final Map<String, dynamic>? aiAnalysis;
 
+  final ProtectionMethod protectionMethod;
+  final ValueChanged<ProtectionMethod> onProtectionMethodChanged;
+
+  final TextEditingController passwordController;
+  final TextEditingController confirmPasswordController;
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -736,39 +917,97 @@ class _EncryptSetupContent extends StatelessWidget {
         const SizedBox(height: 22),
         _SectionLabel(label: 'Encryption Option', icon: Icons.settings_rounded),
         const SizedBox(height: 12),
-        const _OptionRow(
-          label: 'Bio-metric',
-          icon: Icons.fingerprint_rounded,
-          color: Color(0xFF60A5FA),
-        ),
-        const SizedBox(height: 8),
-        const _OptionRow(
-          label: 'Password',
-          icon: Icons.lock_rounded,
-          color: Color(0xFFA78BFA),
-        ),
-        const SizedBox(height: 8),
-        const _OptionRow(
-          label: 'Auto-gen Key',
-          icon: Icons.key_rounded,
-          color: Color(0xFF34D399),
-        ),
+        _OptionRow(
+  label: 'Biometric',
+  icon: Icons.fingerprint_rounded,
+  color: const Color(0xFF60A5FA),
+  selected: protectionMethod == ProtectionMethod.biometric,
+  onTap: () {
+    onProtectionMethodChanged(ProtectionMethod.biometric);
+  },
+),
+
+  const SizedBox(height: 8),
+
+ _OptionRow(
+  label: 'Hybrid',
+  icon: Icons.security_rounded,
+  color: const Color(0xFF34D399),
+  selected: protectionMethod == ProtectionMethod.hybrid,
+  onTap: () {
+    onProtectionMethodChanged(ProtectionMethod.hybrid);
+  },
+),
+
+const SizedBox(height: 8),
+
+_OptionRow(
+  label: 'Password Only',
+  icon: Icons.lock_outlined,
+  color: const Color(0xFFA78BFA),
+  selected: protectionMethod == ProtectionMethod.passwordOnly,
+  onTap: () {
+    onProtectionMethodChanged(ProtectionMethod.passwordOnly);
+  },
+),
+
+if (protectionMethod == ProtectionMethod.hybrid ||
+    protectionMethod == ProtectionMethod.passwordOnly)...[
+  const SizedBox(height: 16),
+
+  TextField(
+    controller: passwordController,
+    obscureText: true,
+    style: const TextStyle(color: Colors.white),
+    decoration: _secureInputDecoration(
+      hint: protectionMethod == ProtectionMethod.hybrid
+    ? 'Enter hybrid password'
+    : 'Enter sharing password',
+      icon: Icons.lock_outline_rounded,
+    ),
+  ),
+
+  const SizedBox(height: 10),
+
+  TextField(
+    controller: confirmPasswordController,
+    obscureText: true,
+    style: const TextStyle(color: Colors.white),
+    decoration: _secureInputDecoration(
+      hint: protectionMethod == ProtectionMethod.hybrid
+    ? 'Confirm hybrid password'
+    : 'Confirm sharing password',
+      icon: Icons.lock_reset_rounded,
+    ),
+  ),
+
+  const SizedBox(height: 8),
+
+  Text(
+  protectionMethod == ProtectionMethod.hybrid
+      ? 'Hybrid protection requires both your password and biometric authentication.'
+      : 'Use Password Only for files that will be shared through Steganography.',
+  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+    color: Colors.white.withValues(alpha: 0.60),
+    ),
+  ),
+],
         const SizedBox(height: 22),
         if (aiAnalysis != null) ...[
-  const SizedBox(height: 20),
-  Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.06),
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+          const SizedBox(height: 20),
+          Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+         ),
+         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.auto_awesome_rounded, color: Color(0xFF60A5FA)),
+            Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded, color: Color(0xFF60A5FA)),
             const SizedBox(width: 8),
             Text(
               'AI Security Advisor',
@@ -852,12 +1091,16 @@ class _DecryptSetupContent extends StatefulWidget {
     required this.selectedFileName,
     required this.keyController,
     required this.onPickFile,
+    required this.protectionMethod,
+    required this.onProtectionMethodChanged,
   });
 
   final VoidCallback onStartPressed;
   final String? selectedFileName;
   final TextEditingController keyController;
   final VoidCallback onPickFile;
+  final ProtectionMethod protectionMethod;
+final ValueChanged<ProtectionMethod> onProtectionMethodChanged;
 
   @override
   State<_DecryptSetupContent> createState() => _DecryptSetupContentState();
@@ -882,59 +1125,125 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
           icon: widget.selectedFileName != null ? Icons.verified_user_rounded : Icons.lock_outlined,
           onTap: widget.onPickFile,
         ),
+        _SectionLabel(
+  label: 'Decryption Option',
+  icon: Icons.settings_rounded,
+),
+
+const SizedBox(height: 12),
+
+_OptionRow(
+  label: 'Biometric',
+  icon: Icons.fingerprint_rounded,
+  color: const Color(0xFF60A5FA),
+  selected:
+      widget.protectionMethod == ProtectionMethod.biometric,
+  onTap: () {
+    widget.onProtectionMethodChanged(
+      ProtectionMethod.biometric,
+    );
+  },
+),
+
+const SizedBox(height: 8),
+
+_OptionRow(
+  label: 'Hybrid',
+  icon: Icons.security_rounded,
+  color: const Color(0xFF34D399),
+  selected:
+      widget.protectionMethod == ProtectionMethod.hybrid,
+  onTap: () {
+    widget.onProtectionMethodChanged(
+      ProtectionMethod.hybrid,
+    );
+  },
+),
+
+const SizedBox(height: 8),
+
+_OptionRow(
+  label: 'Password Only',
+  icon: Icons.lock_outline_rounded,
+  color: const Color(0xFFA78BFA),
+  selected:
+      widget.protectionMethod == ProtectionMethod.passwordOnly,
+  onTap: () {
+    widget.onProtectionMethodChanged(
+      ProtectionMethod.passwordOnly,
+    );
+  },
+),
         const SizedBox(height: 18),
-        _SectionLabel(label: 'Decryption key', icon: Icons.key_rounded),
-        const SizedBox(height: 10),
-        TextField(
-          controller: widget.keyController,
-          obscureText: _obscurePassword,
-          style: textTheme.bodyLarge?.copyWith(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Enter password or key',
-            hintStyle: textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withValues(alpha: 0.45),
-            ),
-            prefixIcon: Icon(
-              Icons.lock_outline_rounded,
-              color: Colors.white.withValues(alpha: 0.6),
-            ),
-            suffixIcon: IconButton(
-              onPressed: () {
-                setState(() => _obscurePassword = !_obscurePassword);
-              },
-              icon: Icon(
-                _obscurePassword
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                color: Colors.white.withValues(alpha: 0.6),
-              ),
-            ),
-            filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.08),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.15),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.15),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.accent, width: 1.8),
-            ),
-          ),
+ if (widget.protectionMethod != ProtectionMethod.biometric) ...[
+  _SectionLabel(
+    label: 'Decryption Password',
+    icon: Icons.key_rounded,
+  ),
+
+  const SizedBox(height: 10),
+
+  TextField(
+    controller: widget.keyController,
+    obscureText: _obscurePassword,
+    style: textTheme.bodyLarge?.copyWith(
+      color: Colors.white,
+    ),
+    decoration: InputDecoration(
+      hintText: widget.protectionMethod ==
+              ProtectionMethod.hybrid
+          ? 'Enter hybrid password'
+          : 'Enter sharing password',
+
+      hintStyle: textTheme.bodyMedium?.copyWith(
+        color: Colors.white.withValues(alpha: 0.45),
+      ),
+
+      prefixIcon: Icon(
+        Icons.lock_outline_rounded,
+        color: Colors.white.withValues(alpha: 0.6),
+      ),
+
+      suffixIcon: IconButton(
+        onPressed: () {
+          setState(() {
+            _obscurePassword = !_obscurePassword;
+          });
+        },
+        icon: Icon(
+          _obscurePassword
+              ? Icons.visibility_off_outlined
+              : Icons.visibility_outlined,
+          color: Colors.white.withValues(alpha: 0.6),
         ),
-        const SizedBox(height: 14),
-        // Warning banner
-        _WarningBanner(
-          text: 'After 3 wrong attempts, you will be automatically logged out.',
+      ),
+
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.08),
+
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: Colors.white.withValues(alpha: 0.15),
         ),
-        const SizedBox(height: 14),
+      ),
+
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: AppColors.accent,
+          width: 1.8,
+        ),
+      ),
+    ),
+  ),
+
+  const SizedBox(height: 14),
+],
         // Checkbox for hidden data
         GestureDetector(
           onTap: () =>
@@ -984,23 +1293,26 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
 // ---------------------------------------------------------------------------
 class _SteganographySetupContent extends StatelessWidget {
   const _SteganographySetupContent({
-    required this.onStartPressed,
-    required this.stegoCoverImageName,
-    required this.stegoFileName,
-    required this.stegoExtractImageName,
-    required this.onPickStegoCover,
-    required this.onPickStegoFile,
-    required this.onPickStegoExtract,
-  });
+  required this.onStartPressed,
+  required this.stegoCoverImageName,
+  required this.stegoFileName,
+  required this.stegoExtractImageName,
+  required this.onPickStegoCover,
+  required this.onPickStegoFile,
+  required this.onPickStegoExtract,
+  required this.passwordController,
+  required this.confirmPasswordController,
+});
 
   final VoidCallback onStartPressed;
-  final String? stegoCoverImageName;
-  final String? stegoFileName;
-  final String? stegoExtractImageName;
-  final VoidCallback onPickStegoCover;
-  final VoidCallback onPickStegoFile;
-  final VoidCallback onPickStegoExtract;
-
+final String? stegoCoverImageName;
+final String? stegoFileName;
+final String? stegoExtractImageName;
+final VoidCallback onPickStegoCover;
+final VoidCallback onPickStegoFile;
+final VoidCallback onPickStegoExtract;
+final TextEditingController passwordController;
+final TextEditingController confirmPasswordController;
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1616,41 +1928,38 @@ class _SegmentedButton extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Option row (radio select for encryption method)
 // ---------------------------------------------------------------------------
-class _OptionRow extends StatefulWidget {
+class _OptionRow extends StatelessWidget {
   const _OptionRow({
     required this.label,
     required this.icon,
     required this.color,
+    required this.selected,
+    required this.onTap,
   });
 
   final String label;
   final IconData icon;
   final Color color;
-
-  @override
-  State<_OptionRow> createState() => _OptionRowState();
-}
-
-class _OptionRowState extends State<_OptionRow> {
-  bool _selected = false;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => setState(() => _selected = !_selected),
+      onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
-          color: _selected
-              ? widget.color.withValues(alpha: 0.12)
+          color: selected
+              ? color.withValues(alpha: 0.12)
               : Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: _selected
-                ? widget.color.withValues(alpha: 0.4)
+            color: selected
+                ? color.withValues(alpha: 0.4)
                 : Colors.white.withValues(alpha: 0.10),
-            width: _selected ? 1.5 : 1.0,
+            width: selected ? 1.5 : 1.0,
           ),
         ),
         child: Row(
@@ -1659,28 +1968,29 @@ class _OptionRowState extends State<_OptionRow> {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: _selected
-                    ? widget.color.withValues(alpha: 0.2)
+                color: selected
+                    ? color.withValues(alpha: 0.2)
                     : Colors.white.withValues(alpha: 0.06),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                widget.icon,
+                icon,
                 size: 14,
-                color: _selected
-                    ? widget.color
+                color: selected
+                    ? color
                     : Colors.white.withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                widget.label,
+                label,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: _selected
+                  color: selected
                       ? Colors.white
                       : Colors.white.withValues(alpha: 0.75),
-                  fontWeight: _selected ? FontWeight.w600 : FontWeight.w400,
+                  fontWeight:
+                      selected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
             ),
@@ -1690,15 +2000,15 @@ class _OptionRowState extends State<_OptionRow> {
               height: 18,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _selected ? widget.color : Colors.transparent,
+                color: selected ? color : Colors.transparent,
                 border: Border.all(
-                  color: _selected
-                      ? widget.color
+                  color: selected
+                      ? color
                       : Colors.white.withValues(alpha: 0.25),
                   width: 1.5,
                 ),
               ),
-              child: _selected
+              child: selected
                   ? const Icon(Icons.check, size: 11, color: Colors.white)
                   : null,
             ),
@@ -1775,6 +2085,43 @@ class _ProgressStep extends StatelessWidget {
       ],
     );
   }
+}
+
+InputDecoration _secureInputDecoration({
+  required String hint,
+  required IconData icon,
+}) {
+  return InputDecoration(
+    hintText: hint,
+    hintStyle: TextStyle(
+      color: Colors.white.withValues(alpha: 0.45),
+    ),
+    prefixIcon: Icon(
+      icon,
+      color: Colors.white.withValues(alpha: 0.60),
+    ),
+    filled: true,
+    fillColor: Colors.white.withValues(alpha: 0.08),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(
+        color: Colors.white.withValues(alpha: 0.15),
+      ),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(
+        color: Colors.white.withValues(alpha: 0.15),
+      ),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(
+        color: AppColors.accent,
+        width: 1.8,
+      ),
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------
