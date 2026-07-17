@@ -6,6 +6,8 @@ import 'package:encrypto/features/encryption/presentation/pages/encryption_shell
 import 'package:encrypto/features/auth/presentation/pages/signup_page.dart';
 import 'package:encrypto/shared/widgets/auth/auth_layout.dart';
 import 'package:encrypto/services/api_service.dart';
+import 'package:encrypto/services/intruder_camera_service.dart';
+import 'package:flutter/services.dart';
 
 final emailController = TextEditingController();
 final passwordController = TextEditingController();
@@ -87,28 +89,88 @@ class _LoginPageState extends State<LoginPage>
     setState(() => _authenticating = true);
 
     try {
-      final authenticated = await _localAuth.authenticate(
-        localizedReason: 'Authenticate to unlock your encrypted vault.',
-        biometricOnly: true,
-        persistAcrossBackgrounding: true,
-      );
+  final authenticated = await _localAuth.authenticate(
+    localizedReason: 'Authenticate to unlock your encrypted vault.',
+    biometricOnly: true,
+    persistAcrossBackgrounding: true,
+  );
 
-      if (!mounted) return;
-      if (authenticated) {
-        _openVault();
-      } else {
-        _showAuthMessage('Biometric authentication was cancelled.');
-      }
-    } catch (_) {
-      if (mounted) {
-        _showAuthMessage('Biometric authentication failed. Use your password.');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _authenticating = false);
-      }
-    }
+  if (!mounted) return;
+
+  if (authenticated) {
+    _openVault();
+  } else {
+    await _recordLoginFailure(
+      reason: 'Biometric authentication cancelled',
+      incidentType: 'biometric_login_failure',
+    );
+
+    if (!mounted) return;
+
+    _showAuthMessage(
+      'Biometric authentication was cancelled.',
+    );
   }
+} on PlatformException catch (error) {
+  final code = error.code.toLowerCase();
+
+  final isLockout =
+      code.contains('lockedout') ||
+      code.contains('permanentlylockedout') ||
+      code.contains('lockout');
+
+  await _recordLoginFailure(
+    reason: isLockout
+        ? 'Biometric locked after too many attempts'
+        : 'Biometric authentication failed',
+    incidentType: isLockout
+        ? 'biometric_lockout'
+        : 'biometric_login_failure',
+  );
+
+  if (!mounted) return;
+
+  _showAuthMessage(
+    isLockout
+        ? 'Too many biometric attempts. Try again later.'
+        : 'Biometric authentication failed.',
+  );
+} catch (error) {
+  await _recordLoginFailure(
+    reason: 'Biometric authentication error',
+    incidentType: 'biometric_login_failure',
+  );
+
+  if (!mounted) return;
+
+  _showAuthMessage(
+    'Biometric authentication failed.',
+  );
+} finally {
+  if (mounted) {
+    setState(() => _authenticating = false);
+  }
+}
+  }
+  Future<void> _recordLoginFailure({
+  required String reason,
+  required String incidentType,
+}) async {
+  try {
+    final imagePath =
+        await IntruderCameraService.captureFrontCameraPhoto();
+
+    await ApiService.createSecurityIncident(
+      reason: reason,
+      incidentType: incidentType,
+      deviceInfo: 'Android mobile device',
+      attemptedEmail: emailController.text.trim().toLowerCase(),
+      imagePath: imagePath,
+    );
+  } catch (error) {
+    debugPrint('Security incident recording failed: $error');
+  }
+}
 
   void _openVault() {
     FocusScope.of(context).unfocus();
@@ -313,6 +375,13 @@ class _LoginPageState extends State<LoginPage>
 
                                     _openVault();
                                   } else {
+                                    await _recordLoginFailure(
+                                      reason: 'Invalid email or password entered',
+                                      incidentType: 'credential_login_failure',
+                                    );
+
+                                    if (!context.mounted) return;
+
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(

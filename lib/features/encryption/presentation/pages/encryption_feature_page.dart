@@ -454,6 +454,9 @@ if (_activeMode == EncryptionMode.encrypt ||
   encryptResult = await ApiService.encryptFileWithPassword(
     fileId: fileId!,
     password: _hybridPasswordController.text.trim(),
+    mode: _protectionMethod == ProtectionMethod.hybrid
+      ? 'hybrid'
+      : 'password_only',
   );
 } else {
   encryptResult = await ApiService.encryptFile(fileId!);
@@ -493,6 +496,9 @@ if (_activeMode == EncryptionMode.encrypt ||
     decryptResult = await ApiService.decryptFileWithPassword(
       fileId: fileId!,
       password: decryptionKey,
+      mode: _protectionMethod == ProtectionMethod.hybrid
+      ? 'hybrid'
+      : 'password_only',
     );
 
   }

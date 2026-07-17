@@ -165,11 +165,12 @@ static Future<List<int>?> downloadStegoFile(String filename) async {
 static Future<Map<String, dynamic>> encryptFileWithPassword({
   required int fileId,
   required String password,
+  required String mode,
 }) async {
   final response = await http.post(
     Uri.parse('$baseUrl/crypto/encrypt-password/$fileId'),
     headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'password': password}),
+    body: jsonEncode({'password': password, 'mode':mode}),
   );
 
   return {
@@ -181,11 +182,12 @@ static Future<Map<String, dynamic>> encryptFileWithPassword({
 static Future<Map<String, dynamic>> decryptFileWithPassword({
   required int fileId,
   required String password,
+  required String mode,
 }) async {
   final response = await http.post(
     Uri.parse('$baseUrl/crypto/decrypt-password/$fileId'),
     headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'password': password}),
+    body: jsonEncode({'password': password, 'mode':mode}),
   );
 
   return {
@@ -194,7 +196,68 @@ static Future<Map<String, dynamic>> decryptFileWithPassword({
   };
 }
 
+static Future<Map<String, dynamic>> createSecurityIncident({
+  required String reason,
+  required String incidentType,
+  required String deviceInfo,
+  int? userId,
+  String? attemptedEmail,
+  String? imagePath,
+}) async {
+  final uri = Uri.parse('$baseUrl/security/incidents');
+  final request = http.MultipartRequest('POST', uri);
 
+  request.fields['reason'] = reason;
+  request.fields['incident_type'] = incidentType;
+  request.fields['device_info'] = deviceInfo;
 
+  if (userId != null) {
+    request.fields['user_id'] = userId.toString();
+  }
+
+  if (attemptedEmail != null &&
+    attemptedEmail.trim().isNotEmpty) {
+  request.fields['attempted_email'] =
+      attemptedEmail.trim();
+}
+
+  if (imagePath != null && imagePath.isNotEmpty) {
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'image',
+        imagePath,
+      ),
+    );
+  }
+
+  final streamedResponse = await request.send();
+  final response = await http.Response.fromStream(streamedResponse);
+
+  return {
+    'status': response.statusCode,
+    'body': jsonDecode(response.body),
+  };
+}
+
+static Future<Map<String, dynamic>> getSecurityIncidents({
+  int? userId,
+}) async {
+  final uri = userId == null
+      ? Uri.parse('$baseUrl/security/incidents')
+      : Uri.parse(
+          '$baseUrl/security/incidents?user_id=$userId',
+        );
+
+  final response = await http.get(uri);
+
+  return {
+    'status': response.statusCode,
+    'body': jsonDecode(response.body),
+  };
+}
+
+static String securityIncidentImageUrl(int incidentId) {
+  return '$baseUrl/security/incidents/$incidentId/image';
+}
 
 }
