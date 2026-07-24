@@ -266,4 +266,25 @@ static String securityIncidentImageUrl(int incidentId) {
   return '$baseUrl/security/incidents/$incidentId/image';
 }
 
+static Future<Map<String, dynamic>> getVaultDashboard() async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/files/dashboard'),
+  );
+
+  dynamic responseBody;
+
+  try {
+    responseBody = jsonDecode(response.body);
+  } catch (_) {
+    responseBody = {
+      'detail': 'Invalid dashboard response',
+    };
+  }
+
+  return {
+    'status': response.statusCode,
+    'body': responseBody,
+  };
+}
+
 }

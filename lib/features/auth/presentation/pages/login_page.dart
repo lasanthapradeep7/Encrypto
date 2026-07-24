@@ -8,9 +8,8 @@ import 'package:encrypto/shared/widgets/auth/auth_layout.dart';
 import 'package:encrypto/services/api_service.dart';
 import 'package:encrypto/services/intruder_camera_service.dart';
 import 'package:flutter/services.dart';
+import 'package:encrypto/services/session_service.dart';
 
-final emailController = TextEditingController();
-final passwordController = TextEditingController();
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,8 +20,18 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage>
     with SingleTickerProviderStateMixin {
+
+  final TextEditingController emailController =
+    TextEditingController();
+
+  final TextEditingController passwordController =
+    TextEditingController();
+
   final _formKey = GlobalKey<FormState>();
   final _localAuth = LocalAuthentication();
+
+  
+
   bool _obscurePassword = true;
   bool _rememberMe = true;
   bool _biometricsAvailable = false;
@@ -35,6 +44,7 @@ class _LoginPageState extends State<LoginPage>
   @override
   void initState() {
     super.initState();
+    SessionService.startSecurityWindow();
     _panelController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -364,11 +374,26 @@ class _LoginPageState extends State<LoginPage>
                                     password: passwordController.text,
                                   );
 
-                                  debugPrint('LOGIN RESPONSE BODY: ${result["body"]}');
+                                  debugPrint('LOGIN STATUS: ${result["status"]}');
+                                  debugPrint('LOGIN BODY: ${result["body"]}');
 
                                   if (!context.mounted) return;
 
                                   if (result["status"] == 200) {
+                                    final body = result["body"] as Map<String, dynamic>;
+                                    final accessToken = body["access_token"]?.toString();
+
+                                    if (accessToken == null || accessToken.isEmpty) {
+                                      _showAuthMessage('Login token was not received.');
+                                      return;
+                                    }
+
+                                    await SessionService.saveLoginSession(
+                                      accessToken: accessToken,
+                                      email: emailController.text.trim(),
+                                    );
+
+                                    if (!context.mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text("Login Success"),

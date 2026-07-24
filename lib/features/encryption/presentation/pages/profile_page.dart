@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
+import 'package:encrypto/services/session_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({
@@ -20,12 +21,92 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   bool _biometricAuthentication = true;
   bool _cloudSync = false;
+  //User details
+  String _userName = 'Loading...';
+  String _userEmail = 'Loading...';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+  final email = await SessionService.getUserEmail();
+
+  if (!mounted) return;
+
+  final emailValue = email ?? '';
+  final emailName = emailValue.split('@').first;
+
+  final formattedName = emailName
+      .replaceAll(RegExp(r'[._-]+'), ' ')
+      .split(' ')
+      .where((part) => part.isNotEmpty)
+      .map(
+        (part) =>
+            '${part[0].toUpperCase()}${part.substring(1)}',
+      )
+      .join(' ');
+
+  setState(() {
+    _userEmail =
+        emailValue.isEmpty ? 'No email available' : emailValue;
+    _userName =
+        formattedName.isEmpty ? 'Vault User' : formattedName;
+  });
+}
 
   void _showComingSoon(String label) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$label coming soon')));
-  }
+  final messages = <String, String>{
+    'Edit Profile':
+        'Profile editing options are available from this section.',
+    'Change password':
+        'Password changes require current password verification.',
+    'Language':
+        'English is currently selected as the application language.',
+    'Invite Friends':
+        'Share Encrypto with friends and help them protect their files.',
+    'Help Center':
+        'Select a file, choose a security mode, and use Encrypt or Decrypt. '
+        'Failed login attempts can be viewed from the Security page.',
+  };
+
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        backgroundColor: AppColors.backgroundStart,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: 0.18),
+          ),
+        ),
+        title: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        content: Text(
+          messages[label] ?? '$label is available in a future update.',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.72),
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +135,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 22),
-                  const _ProfileHero(),
+                  _ProfileHero(
+                    name: _userName,
+                  email: _userEmail,
+                  ),
                   const SizedBox(height: 28),
                   Text(
                     'Personal Information',
@@ -122,7 +206,13 @@ class _ProfilePageState extends State<ProfilePage> {
 }
 
 class _ProfileHero extends StatelessWidget {
-  const _ProfileHero();
+  const _ProfileHero({
+    required this.name,
+    required this.email,
+  });
+
+  final String name;
+  final String email;
 
   @override
   Widget build(BuildContext context) {
@@ -146,13 +236,10 @@ class _ProfileHero extends StatelessWidget {
                 ),
                 boxShadow: AppShadows.accentGlow,
               ),
-              child: Text(
-                'LP',
-                style: textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0,
-                ),
+              child: const Icon(
+                Icons.person_rounded,
+                color: Colors.white,
+                size: 46,
               ),
             ),
             Positioned(
@@ -175,7 +262,7 @@ class _ProfileHero extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Lasantha Pradee',
+          name,
           textAlign: TextAlign.center,
           style: textTheme.titleMedium?.copyWith(
             color: Colors.white,
@@ -185,7 +272,7 @@ class _ProfileHero extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          'lasantha@example.com',
+          email,
           textAlign: TextAlign.center,
           style: textTheme.bodyMedium?.copyWith(
             color: Colors.white.withValues(alpha: 0.46),

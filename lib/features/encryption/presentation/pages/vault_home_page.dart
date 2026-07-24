@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
+import 'package:encrypto/services/api_service.dart';
 
-class VaultHomePage extends StatelessWidget {
+class VaultHomePage extends StatefulWidget {
   const VaultHomePage({
     super.key,
     required this.onOpenWorkflow,
@@ -20,15 +21,92 @@ class VaultHomePage extends StatelessWidget {
   final VoidCallback onOpenSettings;
 
   @override
+  State<VaultHomePage> createState() => _VaultHomePageState();
+}
+
+class _VaultHomePageState extends State<VaultHomePage> {
+  int _encryptedFiles = 0;
+  int _cloudSynced = 0;
+  int _protectedSessions = 0;
+  int _securityIncidents = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboard();
+  }
+
+  Future<void> _loadDashboard() async {
+  try {
+    final dashboardResult =
+        await ApiService.getVaultDashboard();
+
+    final securityResult =
+        await ApiService.getSecurityIncidents();
+
+    if (!mounted) return;
+
+    int encryptedFiles = 0;
+    int cloudSynced = 0;
+    int protectedFiles = 0;
+    int securityIncidents = 0;
+
+    if (dashboardResult['status'] == 200 &&
+        dashboardResult['body'] is Map) {
+      final dashboardBody =
+          Map<String, dynamic>.from(
+        dashboardResult['body'] as Map,
+      );
+
+      encryptedFiles = int.tryParse(
+            '${dashboardBody['encrypted_files']}',
+          ) ??
+          0;
+
+      cloudSynced = int.tryParse(
+            '${dashboardBody['cloud_synced']}',
+          ) ??
+          0;
+
+      protectedFiles = int.tryParse(
+            '${dashboardBody['protected_sessions']}',
+          ) ??
+          0;
+    }
+
+    if (securityResult['status'] == 200 &&
+        securityResult['body'] is Map) {
+      final securityBody =
+          Map<String, dynamic>.from(
+        securityResult['body'] as Map,
+      );
+
+      securityIncidents = int.tryParse(
+            '${securityBody['count']}',
+          ) ??
+          0;
+    }
+
+    setState(() {
+      _encryptedFiles = encryptedFiles;
+      _cloudSynced = cloudSynced;
+      _protectedSessions = protectedFiles;
+      _securityIncidents = securityIncidents;
+    });
+  } catch (error) {
+    debugPrint('Dashboard loading failed: $error');
+  }
+}
+  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
       children: [
         EncryptoTopBar(
-          onProfilePressed: onOpenProfile,
-          onNotificationsPressed: onOpenNotifications,
-          onSettingsPressed: onOpenSettings,
+          onProfilePressed: widget.onOpenProfile,
+          onNotificationsPressed: widget.onOpenNotifications,
+          onSettingsPressed: widget.onOpenSettings,
         ),
         Expanded(
           child: SingleChildScrollView(
@@ -95,25 +173,32 @@ class VaultHomePage extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 18),
-                        const _SummaryRow(
+                        _SummaryRow(
                           icon: Icons.lock_rounded,
                           label: 'Encrypted files',
-                          value: '24',
-                          color: Color(0xFF60A5FA),
+                          value: _encryptedFiles.toString(),
+                          color: const Color(0xFF60A5FA),
                         ),
                         _SummaryDivider(),
-                        const _SummaryRow(
+                        _SummaryRow(
                           icon: Icons.cloud_done_rounded,
                           label: 'Cloud synced',
-                          value: '18',
+                          value: _cloudSynced.toString(),
                           color: Color(0xFF34D399),
                         ),
                         _SummaryDivider(),
-                        const _SummaryRow(
+                        _SummaryRow(
                           icon: Icons.verified_user_rounded,
-                          label: 'Protected sessions',
-                          value: '6',
+                          label: 'Protected files',
+                          value: _protectedSessions.toString(),
                           color: Color(0xFFA78BFA),
+                        ),
+                        _SummaryDivider(),
+                        _SummaryRow(
+                          icon: Icons.warning_amber_rounded,
+                          label: 'Security incidents',
+                          value: _securityIncidents.toString(),
+                          color: const Color(0xFFF87171),
                         ),
                       ],
                     ),
@@ -145,7 +230,7 @@ class VaultHomePage extends StatelessWidget {
                             ),
                             const Spacer(),
                             TextButton(
-                              onPressed: onOpenWorkflow,
+                              onPressed: widget.onOpenWorkflow,
                               child: const Text('Add file'),
                             ),
                           ],

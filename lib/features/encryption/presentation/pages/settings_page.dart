@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
+import 'package:encrypto/features/auth/presentation/pages/login_page.dart';
+import 'package:encrypto/services/session_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key, required this.onBackPressed});
@@ -24,11 +26,76 @@ class _SettingsPageState extends State<SettingsPage> {
     ).showSnackBar(SnackBar(content: Text('$label coming soon')));
   }
 
-  void _logout() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Logout coming soon')));
+  Future<void> _logout() async {
+  final shouldLogout = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        backgroundColor: AppColors.backgroundStart,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: 0.18),
+          ),
+        ),
+        icon: const Icon(
+          Icons.logout_rounded,
+          color: AppColors.error,
+          size: 44,
+        ),
+        title: const Text(
+          'Logout',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to logout from Encrypto?',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.72),
+            height: 1.4,
+          ),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(false);
+            },
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(true);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error,
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (shouldLogout != true || !mounted) {
+    return;
   }
+
+  await SessionService.clearSession();
+
+  if (!mounted) return;
+
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute<void>(
+      builder: (_) => const LoginPage(),
+    ),
+    (route) => false,
+  );
+}
 
   @override
   Widget build(BuildContext context) {
