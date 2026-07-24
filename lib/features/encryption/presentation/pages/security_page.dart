@@ -1,9 +1,13 @@
+// ignore_for_file: unused_element
+
 import 'package:flutter/material.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
+import 'package:encrypto/services/api_service.dart';
+import 'security_details_page.dart';
 
-class SecurityPage extends StatelessWidget {
+class SecurityPage extends StatefulWidget {
   const SecurityPage({
     super.key,
     required this.onOpenWorkflow,
@@ -18,15 +22,70 @@ class SecurityPage extends StatelessWidget {
   final VoidCallback onOpenSettings;
 
   @override
+  State<SecurityPage> createState() => _SecurityPageState();
+}
+
+class _SecurityPageState extends State<SecurityPage> {
+
+  bool _loading = true;
+  String? _error;
+  List<Map<String, dynamic>> _incidents = [];
+
+
+@override
+  void initState() {
+    super.initState();
+    _fetchIntruderIncidents();
+  }
+
+  Future<void> _fetchIntruderIncidents() async {
+  try {
+    debugPrint('NEW SECURITY PAGE CODE IS RUNNING');
+    final result = await ApiService.getSecurityIncidents();
+
+    if (result['status'] != 200) {
+      throw Exception(
+        result['body']?['detail'] ?? 'Failed to load incidents',
+      );
+    }
+
+    final rawIncidents =
+        (result['body']?['incidents'] as List?) ?? [];
+
+    debugPrint(rawIncidents.toString());
+
+    if (!mounted) return;
+
+    setState(() {
+      _incidents = rawIncidents
+          .map(
+            (item) => Map<String, dynamic>.from(item as Map),
+          )
+          .toList();
+
+      _loading = false;
+      _error = null;
+    });
+  } catch (error) {
+    if (!mounted) return;
+
+    setState(() {
+      _error = error.toString();
+      _loading = false;
+    });
+  }
+}
+
+@override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
       children: [
         EncryptoTopBar(
-          onProfilePressed: onOpenProfile,
-          onNotificationsPressed: onOpenNotifications,
-          onSettingsPressed: onOpenSettings,
+          onProfilePressed: widget.onOpenProfile,
+          onNotificationsPressed: widget.onOpenNotifications,
+          onSettingsPressed: widget.onOpenSettings,
         ),
         Expanded(
           child: SingleChildScrollView(
@@ -85,7 +144,7 @@ class SecurityPage extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '3 attempts blocked',
+                                    '${_incidents.length} attempts blocked',
                                     style: textTheme.titleMedium?.copyWith(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w900,
@@ -110,7 +169,7 @@ class SecurityPage extends StatelessWidget {
                         const SizedBox(height: 16),
                         const _SectionTitle('Intruder Photos'),
                         const SizedBox(height: 12),
-                        const _IntruderPhotoStrip(),
+                        _IntruderPhotoStrip(incidents: _incidents),
                         const SizedBox(height: 16),
                         SizedBox(
                           height: 48,
@@ -121,7 +180,15 @@ class SecurityPage extends StatelessWidget {
                               boxShadow: AppShadows.accent,
                             ),
                             child: ElevatedButton.icon(
-                              onPressed: onOpenWorkflow,
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => SecurityDetailsPage(
+                                      incidents: _incidents,
+                                    ),
+                                  ),
+                                );
+                              },
                               icon: const Icon(Icons.visibility_outlined),
                               label: const Text('More Details'),
                               style: ElevatedButton.styleFrom(
@@ -141,7 +208,7 @@ class SecurityPage extends StatelessWidget {
                   const SizedBox(height: 18),
                   const _SectionTitle('Failed Login Attempts'),
                   const SizedBox(height: 12),
-                  const _LoginAttemptList(),
+                  _LoginAttemptList(incidents: _incidents,),
                 ],
               ),
             ),
@@ -217,7 +284,11 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _IntruderPhotoStrip extends StatelessWidget {
-  const _IntruderPhotoStrip();
+  const _IntruderPhotoStrip({
+    required this.incidents,
+  });
+
+  final List<Map<String, dynamic>> incidents;
 
   @override
   Widget build(BuildContext context) {
@@ -226,28 +297,14 @@ class _IntruderPhotoStrip extends StatelessWidget {
       child: ListView(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        children: const [
-          _IntruderPhotoCard(
-            initials: 'A1',
-            icon: Icons.face_retouching_natural_rounded,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF334155), Color(0xFF0F172A)],
+        children: [
+          for (var index = 0; index < incidents.length; index++) ...[
+            _IntruderNetworkPhotoCard(
+              incident: incidents[index],
             ),
-            accent: AppColors.accent,
-          ),
-          SizedBox(width: 14),
-          _IntruderPhotoCard(
-            initials: 'A2',
-            icon: Icons.face_4_rounded,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF312E81), Color(0xFF111827)],
-            ),
-            accent: Color(0xFFA78BFA),
-          ),
+            if (index != incidents.length - 1)
+              const SizedBox(width: 14),
+          ],
         ],
       ),
     );
@@ -364,24 +421,93 @@ class _IntruderPhotoCard extends StatelessWidget {
   }
 }
 
-class _LoginAttemptList extends StatelessWidget {
-  const _LoginAttemptList();
+class _IntruderNetworkPhotoCard extends StatelessWidget {
+  const _IntruderNetworkPhotoCard({
+    required this.incident,
+  });
 
-  static const _attempts = [
-    _LoginAttempt(date: 'Dec 23, 2025', time: '02:00 PM', method: 'PIN'),
-    _LoginAttempt(date: 'Dec 23, 2025', time: '08:00 AM', method: 'Biometric'),
-    _LoginAttempt(date: 'Dec 23, 2025', time: '08:00 AM', method: 'Biometric'),
-    _LoginAttempt(date: 'Dec 02, 2025', time: '02:00 PM', method: 'PIN'),
-    _LoginAttempt(date: 'Dec 02, 2025', time: '02:00 PM', method: 'PIN'),
-  ];
+  final Map<String, dynamic> incident;
 
   @override
   Widget build(BuildContext context) {
+    final incidentId = incident['id'];
+
+    final imageUrl =
+        ApiService.securityIncidentImageUrl(incidentId);
+
+    return Container(
+      width: 146,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.14),
+        ),
+      ),
+      child: Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(
+            child: Icon(
+              Icons.broken_image_outlined,
+              color: Colors.white54,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _LoginAttemptList extends StatelessWidget {
+  const _LoginAttemptList({
+    required this.incidents,
+  });
+
+  final List<Map<String, dynamic>> incidents;
+
+
+    @override
+  Widget build(BuildContext context) {
+    final attempts = incidents.map((incident) {
+      final incidentType =
+          (incident['incident_type'] ?? '').toString().toLowerCase();
+
+      final method = incidentType.contains('biometric')
+          ? 'Biometric'
+          : 'PIN';
+
+      final createdAt = DateTime.tryParse(
+        (incident['created_at'] ?? '').toString(),
+      )?.toLocal();
+
+      final date = createdAt == null
+          ? 'Unknown date'
+          : '${createdAt.day.toString().padLeft(2, '0')}/'
+              '${createdAt.month.toString().padLeft(2, '0')}/'
+              '${createdAt.year}';
+
+      final time = createdAt == null
+          ? 'Unknown time'
+          : '${createdAt.hour.toString().padLeft(2, '0')}:'
+              '${createdAt.minute.toString().padLeft(2, '0')}';
+
+      return _LoginAttempt(
+        date: date,
+        time: time,
+        method: method,
+      );
+    }).toList();
+
     return Column(
       children: [
-        for (var index = 0; index < _attempts.length; index++) ...[
-          _LoginAttemptTile(attempt: _attempts[index]),
-          if (index != _attempts.length - 1) const SizedBox(height: 10),
+        for (var index = 0; index < attempts.length; index++) ...[
+          _LoginAttemptTile(
+            attempt: attempts[index],
+          ),
+          if (index != attempts.length - 1)
+            const SizedBox(height: 10),
         ],
       ],
     );

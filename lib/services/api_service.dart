@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 
 class ApiService {
 
@@ -248,7 +249,12 @@ static Future<Map<String, dynamic>> getSecurityIncidents({
           '$baseUrl/security/incidents?user_id=$userId',
         );
 
+  debugPrint('SECURITY REQUEST URL: $uri');
+
   final response = await http.get(uri);
+
+  debugPrint('SECURITY RESPONSE STATUS: ${response.statusCode}');
+  debugPrint('SECURITY RESPONSE BODY: ${response.body}');
 
   return {
     'status': response.statusCode,

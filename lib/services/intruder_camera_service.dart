@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
 
 class IntruderCameraService {
   IntruderCameraService._();
@@ -48,8 +49,8 @@ class IntruderCameraService {
 
       return targetPath;
     } catch (error, stackTrace) {
-      print('Intruder photo capture failed: $error');
-      print(stackTrace);
+      debugPrint('Intruder photo capture failed: $error');
+      debugPrint(stackTrace.toString());
       return null;
     } finally {
       await controller?.dispose();

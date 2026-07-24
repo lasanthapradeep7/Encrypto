@@ -364,6 +364,8 @@ class _LoginPageState extends State<LoginPage>
                                     password: passwordController.text,
                                   );
 
+                                  debugPrint('LOGIN RESPONSE BODY: ${result["body"]}');
+
                                   if (!context.mounted) return;
 
                                   if (result["status"] == 200) {
