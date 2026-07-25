@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
+import 'package:encrypto/services/api_service.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key, required this.onBackPressed});
@@ -13,59 +14,146 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  final List<_NotificationItem> _newItems = [
-    _NotificationItem(
-      icon: Icons.description_rounded,
-      title: 'Encryption complete',
-      body: 'File "document.pdf" was encrypted using AES-256.',
-      time: '2 min ago',
-      color: AppColors.accent,
-      unread: true,
-      hasActions: true,
-    ),
-    _NotificationItem(
-      icon: Icons.image_rounded,
-      title: 'Steganography encryption done',
-      body: 'Hidden data successfully extracted from an image.',
-      time: '12 min ago',
-      color: const Color(0xFFA78BFA),
-      unread: true,
-      hasActions: true,
-    ),
-    _NotificationItem(
-      icon: Icons.cloud_off_rounded,
-      title: 'Cloud sync failed',
-      body: 'Unable to upload data to cloud storage.',
-      time: '12 min ago',
-      color: AppColors.warning,
-      unread: true,
-      hasActions: true,
-    ),
-  ];
+  final List<_NotificationItem> _newItems = [];
+final List<_NotificationItem> _todayItems = [];
 
-  final List<_NotificationItem> _todayItems = [
-    _NotificationItem(
-      icon: Icons.fingerprint_rounded,
-      title: 'Intruder alert: Failed biometric attempt',
-      body: 'An intruder alert was triggered due to failed facematch.',
-      time: '25/03/2026',
-      color: AppColors.error,
+bool _loadingNotifications = true;
+String? _notificationError;
+
+@override
+void initState() {
+  super.initState();
+  _loadNotifications();
+}
+
+Future<void> _loadNotifications() async {
+  try {
+    final result = await ApiService.getSecurityIncidents();
+
+    if (!mounted) return;
+
+    if (result['status'] != 200 ||
+        result['body'] is! Map) {
+      setState(() {
+        _loadingNotifications = false;
+        _notificationError =
+            'Unable to load notifications';
+      });
+      return;
+    }
+
+    final body = Map<String, dynamic>.from(
+      result['body'] as Map,
+    );
+
+    final rawIncidents = body['incidents'];
+
+    final incidents = rawIncidents is List
+        ? rawIncidents
+            .whereType<Map>()
+            .map(
+              (item) => Map<String, dynamic>.from(item),
+            )
+            .toList()
+        : <Map<String, dynamic>>[];
+
+    final notificationItems = <_NotificationItem>[];
+
+    for (var index = 0;
+        index < incidents.length;
+        index++) {
+      notificationItems.add(
+        _notificationFromIncident(
+          incidents[index],
+          unread: index < 3,
+        ),
+      );
+    }
+
+    setState(() {
+      _newItems
+        ..clear()
+        ..addAll(notificationItems.take(3));
+
+      _todayItems
+        ..clear()
+        ..addAll(notificationItems.skip(3));
+
+      _loadingNotifications = false;
+      _notificationError = null;
+    });
+  } catch (error) {
+    debugPrint(
+      'Notifications loading failed: $error',
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _loadingNotifications = false;
+      _notificationError =
+          'Unable to load notifications';
+    });
+  }
+}
+
+_NotificationItem _notificationFromIncident(
+  Map<String, dynamic> incident, {
+  required bool unread,
+}) {
+  final incidentType =
+      incident['incident_type']
+          ?.toString()
+          .toLowerCase() ??
+      '';
+
+  final isBiometric =
+      incidentType.contains('biometric');
+
+  final reason =
+      incident['reason']?.toString() ??
+      'Unauthorized access attempt detected';
+
+  return _NotificationItem(
+    icon: isBiometric
+        ? Icons.fingerprint_rounded
+        : Icons.warning_amber_rounded,
+    title: isBiometric
+        ? 'Intruder alert: Biometric attempt'
+        : 'Intruder alert: Failed login attempt',
+    body: reason,
+    time: _formatIncidentTime(
+      incident['created_at']?.toString(),
     ),
-    _NotificationItem(
-      icon: Icons.key_rounded,
-      title: 'Key rotation reminder',
-      body: 'Remember to rotate your encryption key regularly.',
-      time: '24/03/2026',
-      color: AppColors.accent,
-    ),
-    _NotificationItem(
-      icon: Icons.fingerprint_rounded,
-      title: 'Intruder alert: Failed biometric attempt',
-      body: 'An intruder alert was triggered due to failed facematch.',
-      time: '24/03/2026',
-      color: AppColors.error,
-    ),
-  ];
+    color: AppColors.error,
+    unread: unread,
+    hasActions: true,
+  );
+}
+
+String _formatIncidentTime(String? rawDate) {
+  if (rawDate == null || rawDate.isEmpty) {
+    return 'Unknown date';
+  }
+
+  final dateTime =
+      DateTime.tryParse(rawDate)?.toLocal();
+
+  if (dateTime == null) {
+    return rawDate;
+  }
+
+  final day =
+      dateTime.day.toString().padLeft(2, '0');
+  final month =
+      dateTime.month.toString().padLeft(2, '0');
+  final hour =
+      dateTime.hour.toString().padLeft(2, '0');
+  final minute =
+      dateTime.minute.toString().padLeft(2, '0');
+
+  return '$day/$month/${dateTime.year}  $hour:$minute';
+}
 
   int get _unreadCount =>
       [..._newItems, ..._todayItems].where((item) => item.unread).length;
@@ -144,7 +232,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   ),
                   const SizedBox(height: 18),
                   _NotificationSection(
-                    title: 'Today',
+                    title: 'Earlier',
                     items: _todayItems,
                     onMarkRead: _markRead,
                     onMute: _mute,

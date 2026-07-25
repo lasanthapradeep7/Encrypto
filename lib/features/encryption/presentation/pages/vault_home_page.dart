@@ -30,6 +30,8 @@ class _VaultHomePageState extends State<VaultHomePage> {
   int _protectedSessions = 0;
   int _securityIncidents = 0;
 
+  List<Map<String, dynamic>> _recentFiles = [];
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +52,8 @@ class _VaultHomePageState extends State<VaultHomePage> {
     int cloudSynced = 0;
     int protectedFiles = 0;
     int securityIncidents = 0;
+
+    List<Map<String, dynamic>> recentFiles = [];
 
     if (dashboardResult['status'] == 200 &&
         dashboardResult['body'] is Map) {
@@ -72,6 +76,17 @@ class _VaultHomePageState extends State<VaultHomePage> {
             '${dashboardBody['protected_sessions']}',
           ) ??
           0;
+
+          final rawRecentFiles = dashboardBody['recent_files'];
+
+if (rawRecentFiles is List) {
+  recentFiles = rawRecentFiles
+      .whereType<Map>()
+      .map(
+        (item) => Map<String, dynamic>.from(item),
+      )
+      .toList();
+}
     }
 
     if (securityResult['status'] == 200 &&
@@ -92,6 +107,7 @@ class _VaultHomePageState extends State<VaultHomePage> {
       _cloudSynced = cloudSynced;
       _protectedSessions = protectedFiles;
       _securityIncidents = securityIncidents;
+      _recentFiles = recentFiles;
     });
   } catch (error) {
     debugPrint('Dashboard loading failed: $error');
@@ -238,7 +254,9 @@ class _VaultHomePageState extends State<VaultHomePage> {
                         const SizedBox(height: 14),
                         const _VaultSearchField(),
                         const SizedBox(height: 14),
-                        const _RecentFileList(),
+                        _RecentFileList(
+                          files: _recentFiles,
+                        ),
                       ],
                     ),
                   ),
@@ -362,58 +380,134 @@ class _VaultSearchField extends StatelessWidget {
 }
 
 class _RecentFileList extends StatelessWidget {
-  const _RecentFileList();
+  const _RecentFileList({
+    required this.files,
+  });
 
-  static const _files = [
-    _VaultFile(
-      name: 'photo.jpg',
-      status: 'Encrypted',
-      size: '3.2 MB',
-      icon: Icons.image_rounded,
-      color: AppColors.accent,
-    ),
-    _VaultFile(
-      name: 'document.pdf',
-      status: 'Decrypted',
-      size: '4.3 MB',
-      icon: Icons.description_rounded,
-      color: AppColors.success,
-    ),
-    _VaultFile(
-      name: 'photo.jpg',
-      status: 'Decrypted',
-      size: '3.2 MB',
-      icon: Icons.image_rounded,
-      color: AppColors.success,
-    ),
-    _VaultFile(
-      name: 'document.pdf',
-      status: 'Encrypted',
-      size: '4.3 MB',
-      icon: Icons.description_rounded,
-      color: AppColors.accent,
-    ),
-    _VaultFile(
-      name: 'document.pdf',
-      status: 'Encrypted',
-      size: '4.3 MB',
-      icon: Icons.description_rounded,
-      color: AppColors.accent,
-    ),
-  ];
+  final List<Map<String, dynamic>> files;
+
+  String _formatSize(dynamic sizeBytes) {
+    final bytes = int.tryParse('$sizeBytes');
+
+    if (bytes == null || bytes <= 0) {
+      return 'Size unavailable';
+    }
+
+    if (bytes < 1024) {
+      return '$bytes B';
+    }
+
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  String _formatStatus(dynamic status) {
+    final value = status?.toString() ?? 'uploaded';
+
+    return value
+        .replaceAll('_', ' ')
+        .split(' ')
+        .where((part) => part.isNotEmpty)
+        .map(
+          (part) =>
+              '${part[0].toUpperCase()}${part.substring(1)}',
+        )
+        .join(' ');
+  }
+
+  IconData _getFileIcon(String fileName) {
+    final name = fileName.toLowerCase();
+
+    if (name.endsWith('.jpg') ||
+        name.endsWith('.jpeg') ||
+        name.endsWith('.png')) {
+      return Icons.image_rounded;
+    }
+
+    if (name.endsWith('.pdf')) {
+      return Icons.picture_as_pdf_rounded;
+    }
+
+    if (name.endsWith('.txt')) {
+      return Icons.text_snippet_rounded;
+    }
+
+    return Icons.insert_drive_file_rounded;
+  }
+
+  Color _getStatusColor(String status) {
+    final value = status.toLowerCase();
+
+    if (value.contains('decrypted')) {
+      return AppColors.success;
+    }
+
+    if (value.contains('encrypted')) {
+      return AppColors.accent;
+    }
+
+    return const Color(0xFFF59E0B);
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (files.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          children: [
+            Icon(
+              Icons.folder_off_outlined,
+              color: Colors.white.withValues(alpha: 0.45),
+              size: 42,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'No recent files available',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.55),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final vaultFiles = files.map((item) {
+      final fileName =
+          item['name']?.toString() ?? 'Unknown file';
+
+      final status =
+          _formatStatus(item['status']);
+
+      return _VaultFile(
+        name: fileName,
+        status: status,
+        size: _formatSize(item['size_bytes']),
+        icon: _getFileIcon(fileName),
+        color: _getStatusColor(status),
+      );
+    }).toList();
+
     return Column(
       children: [
-        for (var index = 0; index < _files.length; index++) ...[
-          _RecentFileTile(file: _files[index]),
-          if (index != _files.length - 1) const SizedBox(height: 10),
+        for (var index = 0;
+            index < vaultFiles.length;
+            index++) ...[
+          _RecentFileTile(
+            file: vaultFiles[index],
+          ),
+          if (index != vaultFiles.length - 1)
+            const SizedBox(height: 10),
         ],
       ],
     );
   }
 }
+
 
 class _VaultFile {
   const _VaultFile({
