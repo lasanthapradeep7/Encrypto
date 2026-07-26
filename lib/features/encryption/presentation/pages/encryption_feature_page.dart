@@ -11,8 +11,10 @@ import 'package:file_picker/file_picker.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
-import 'package:encrypto/services/api_service.dart';
+import '../../../../services/api_service.dart';
+import '../../../../services/ocr_service.dart';
 import 'package:encrypto/services/biometric_key_service.dart';
+import '../../../../services/ocr_api_service.dart';
 
 
 enum EncryptionMode { encrypt, decrypt, steganography }
@@ -197,37 +199,115 @@ void dispose() {
     }
   }
 
+  bool _isImageFile(String fileName) {
+  final lowerName = fileName.toLowerCase();
+
+  return lowerName.endsWith('.jpg') ||
+      lowerName.endsWith('.jpeg') ||
+      lowerName.endsWith('.png') ||
+      lowerName.endsWith('.webp') ||
+      lowerName.endsWith('.bmp');
+}
+
   Future<void> _uploadAndAnalyzeSelectedFile() async {
-  if (_selectedFilePath == null || _selectedFileName == null) return;
+  final selectedPath = _selectedFilePath;
+  final selectedName = _selectedFileName;
+
+  if (selectedPath == null || selectedName == null) {
+    return;
+  }
 
   try {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('AI analyzing selected file...')),
+      const SnackBar(
+        content: Text(
+          'AI analyzing selected file...',
+        ),
+      ),
     );
 
-    final uploadResult = await ApiService.uploadFile(_selectedFilePath!);
+    final uploadResult = await ApiService.uploadFile(
+      selectedPath,
+    );
 
     if (uploadResult['status'] != 200) {
-      throw Exception(uploadResult['body']?['detail'] ?? 'Upload failed');
+      throw Exception(
+        uploadResult['body']?['detail'] ??
+            'Upload failed',
+      );
     }
 
     final fileId = uploadResult['body']?['file_id'] as int;
 
-    final aiResult = await ApiService.analyzeFile(fileId);
+    late final Map<String, dynamic> aiResult;
+
+debugPrint('SELECTED FILE NAME: $selectedName');
+debugPrint(
+  'IS IMAGE FILE: ${_isImageFile(selectedName)}',
+);
+
+if (_isImageFile(selectedName)) {
+  debugPrint('USING MOBILE OCR FLOW');
+
+  final extractedText =
+      await OcrService.extractTextFromImage(
+    selectedPath,
+  );
+
+  if (extractedText.trim().isEmpty) {
+    throw Exception(
+      'No readable text was detected in the image.',
+    );
+  }
+
+  debugPrint(
+    'MOBILE OCR EXTRACTED '
+    '${extractedText.length} CHARACTERS',
+  );
+
+  debugPrint(
+    'MOBILE OCR TEXT: $extractedText',
+  );
+
+ aiResult = await OcrApiService.analyzeExtractedText(
+  fileId: fileId,
+  extractedText: extractedText,
+);
+} else {
+  debugPrint(
+    'USING BACKEND FILE ANALYSIS FLOW',
+  );
+
+  aiResult = await ApiService.analyzeFile(
+    fileId,
+  );
+}
 
     if (aiResult['status'] != 200) {
-      throw Exception(aiResult['body']?['detail'] ?? 'AI analysis failed');
+      throw Exception(
+        aiResult['body']?['detail'] ??
+            'AI analysis failed',
+      );
     }
+
+    if (!mounted) return;
 
     setState(() {
       _processedFileId = fileId;
-      _aiAnalysis = aiResult['body'];
+      _aiAnalysis =
+          aiResult['body'] as Map<String, dynamic>;
     });
-  } catch (e) {
+  } catch (error) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('AI analysis failed: $e')),
+      SnackBar(
+        content: Text(
+          'AI analysis failed: $error',
+        ),
+      ),
     );
   }
 }
