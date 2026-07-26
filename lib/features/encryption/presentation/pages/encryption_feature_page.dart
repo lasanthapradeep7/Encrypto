@@ -186,7 +186,10 @@ void dispose() {
             _aiAnalysis = null;
           }
         });
-        if (!isStegoCover && !isStegoFile && !isStegoExtract) {
+        if (!isStegoCover &&
+    !isStegoFile &&
+    !isStegoExtract &&
+    _activeMode == EncryptionMode.encrypt) {
   await _uploadAndAnalyzeSelectedFile();
 }
       }
