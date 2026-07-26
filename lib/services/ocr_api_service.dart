@@ -1,18 +1,32 @@
 ﻿import 'dart:convert';
 
+import 'package:encrypto/services/session_service.dart';
 import 'package:http/http.dart' as http;
 
 class OcrApiService {
   static const String baseUrl =
       'https://encrypto-backend-sdys.onrender.com';
 
-  static Future<Map<String, dynamic>> analyzeExtractedText({
+  static Future<Map<String, dynamic>>
+      analyzeExtractedText({
     required int fileId,
     required String extractedText,
   }) async {
+    final token =
+        await SessionService.getAccessToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception(
+        'Login session not found.',
+      );
+    }
+
     final response = await http.post(
-      Uri.parse('$baseUrl/ai/analyze-ocr-text'),
+      Uri.parse(
+        '$baseUrl/ai/analyze-ocr-text',
+      ),
       headers: {
+        'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
       body: jsonEncode({
@@ -24,10 +38,13 @@ class OcrApiService {
     dynamic responseBody;
 
     try {
-      responseBody = jsonDecode(response.body);
+      responseBody = jsonDecode(
+        response.body,
+      );
     } catch (_) {
       responseBody = {
-        'detail': 'Invalid AI analysis response',
+        'detail':
+            'Invalid AI analysis response',
       };
     }
 

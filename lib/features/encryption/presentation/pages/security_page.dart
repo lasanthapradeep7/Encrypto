@@ -6,6 +6,7 @@ import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
 import 'package:encrypto/services/api_service.dart';
 import 'security_details_page.dart';
+import 'package:encrypto/services/session_service.dart';
 
 class SecurityPage extends StatefulWidget {
   const SecurityPage({
@@ -444,22 +445,51 @@ class _IntruderNetworkPhotoCard extends StatelessWidget {
           color: Colors.white.withValues(alpha: 0.14),
         ),
       ),
-      child: Image.network(
-        imageUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return const Center(
-            child: Icon(
-              Icons.broken_image_outlined,
-              color: Colors.white54,
-            ),
-          );
-        },
-      ),
+      child: FutureBuilder<String?>(
+  future: SessionService.getAccessToken(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState ==
+        ConnectionState.waiting) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    final token = snapshot.data;
+
+    if (token == null || token.isEmpty) {
+      return const Center(
+        child: Icon(
+          Icons.broken_image_outlined,
+          color: Colors.white54,
+        ),
+      );
+    }
+
+    return Image.network(
+      imageUrl,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+      fit: BoxFit.cover,
+      errorBuilder: (
+        context,
+        error,
+        stackTrace,
+      ) {
+        return const Center(
+          child: Icon(
+            Icons.broken_image_outlined,
+            color: Colors.white54,
+          ),
+        );
+      },
     );
+  },
+)
+);
   }
 }
-
 class _LoginAttemptList extends StatelessWidget {
   const _LoginAttemptList({
     required this.incidents,
