@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field
+
 // ignore_for_file: unused_element
 
 import 'package:flutter/material.dart';
@@ -27,57 +29,52 @@ class SecurityPage extends StatefulWidget {
 }
 
 class _SecurityPageState extends State<SecurityPage> {
-
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _incidents = [];
 
-
-@override
+  @override
   void initState() {
     super.initState();
     _fetchIntruderIncidents();
   }
 
   Future<void> _fetchIntruderIncidents() async {
-  try {
-    debugPrint('NEW SECURITY PAGE CODE IS RUNNING');
-    final result = await ApiService.getSecurityIncidents();
+    try {
+      debugPrint('NEW SECURITY PAGE CODE IS RUNNING');
+      final result = await ApiService.getSecurityIncidents();
 
-    if (result['status'] != 200) {
-      throw Exception(
-        result['body']?['detail'] ?? 'Failed to load incidents',
-      );
+      if (result['status'] != 200) {
+        throw Exception(
+          result['body']?['detail'] ?? 'Failed to load incidents',
+        );
+      }
+
+      final rawIncidents = (result['body']?['incidents'] as List?) ?? [];
+
+      debugPrint(rawIncidents.toString());
+
+      if (!mounted) return;
+
+      setState(() {
+        _incidents = rawIncidents
+            .map((item) => Map<String, dynamic>.from(item as Map))
+            .toList();
+
+        _loading = false;
+        _error = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = error.toString();
+        _loading = false;
+      });
     }
-
-    final rawIncidents =
-        (result['body']?['incidents'] as List?) ?? [];
-
-    debugPrint(rawIncidents.toString());
-
-    if (!mounted) return;
-
-    setState(() {
-      _incidents = rawIncidents
-          .map(
-            (item) => Map<String, dynamic>.from(item as Map),
-          )
-          .toList();
-
-      _loading = false;
-      _error = null;
-    });
-  } catch (error) {
-    if (!mounted) return;
-
-    setState(() {
-      _error = error.toString();
-      _loading = false;
-    });
   }
-}
 
-@override
+  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
@@ -209,7 +206,7 @@ class _SecurityPageState extends State<SecurityPage> {
                   const SizedBox(height: 18),
                   const _SectionTitle('Failed Login Attempts'),
                   const SizedBox(height: 12),
-                  _LoginAttemptList(incidents: _incidents,),
+                  _LoginAttemptList(incidents: _incidents),
                 ],
               ),
             ),
@@ -285,9 +282,7 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _IntruderPhotoStrip extends StatelessWidget {
-  const _IntruderPhotoStrip({
-    required this.incidents,
-  });
+  const _IntruderPhotoStrip({required this.incidents});
 
   final List<Map<String, dynamic>> incidents;
 
@@ -300,11 +295,8 @@ class _IntruderPhotoStrip extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         children: [
           for (var index = 0; index < incidents.length; index++) ...[
-            _IntruderNetworkPhotoCard(
-              incident: incidents[index],
-            ),
-            if (index != incidents.length - 1)
-              const SizedBox(width: 14),
+            _IntruderNetworkPhotoCard(incident: incidents[index]),
+            if (index != incidents.length - 1) const SizedBox(width: 14),
           ],
         ],
       ),
@@ -423,9 +415,7 @@ class _IntruderPhotoCard extends StatelessWidget {
 }
 
 class _IntruderNetworkPhotoCard extends StatelessWidget {
-  const _IntruderNetworkPhotoCard({
-    required this.incident,
-  });
+  const _IntruderNetworkPhotoCard({required this.incident});
 
   final Map<String, dynamic> incident;
 
@@ -433,80 +423,59 @@ class _IntruderNetworkPhotoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final incidentId = incident['id'];
 
-    final imageUrl =
-        ApiService.securityIncidentImageUrl(incidentId);
+    final imageUrl = ApiService.securityIncidentImageUrl(incidentId);
 
     return Container(
       width: 146,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.14),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
       ),
       child: FutureBuilder<String?>(
-  future: SessionService.getAccessToken(),
-  builder: (context, snapshot) {
-    if (snapshot.connectionState ==
-        ConnectionState.waiting) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+        future: SessionService.getAccessToken(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-    final token = snapshot.data;
+          final token = snapshot.data;
 
-    if (token == null || token.isEmpty) {
-      return const Center(
-        child: Icon(
-          Icons.broken_image_outlined,
-          color: Colors.white54,
-        ),
-      );
-    }
+          if (token == null || token.isEmpty) {
+            return const Center(
+              child: Icon(Icons.broken_image_outlined, color: Colors.white54),
+            );
+          }
 
-    return Image.network(
-      imageUrl,
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-      fit: BoxFit.cover,
-      errorBuilder: (
-        context,
-        error,
-        stackTrace,
-      ) {
-        return const Center(
-          child: Icon(
-            Icons.broken_image_outlined,
-            color: Colors.white54,
-          ),
-        );
-      },
+          return Image.network(
+            imageUrl,
+            headers: {'Authorization': 'Bearer $token'},
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return const Center(
+                child: Icon(Icons.broken_image_outlined, color: Colors.white54),
+              );
+            },
+          );
+        },
+      ),
     );
-  },
-)
-);
   }
 }
+
 class _LoginAttemptList extends StatelessWidget {
-  const _LoginAttemptList({
-    required this.incidents,
-  });
+  const _LoginAttemptList({required this.incidents});
 
   final List<Map<String, dynamic>> incidents;
 
-
-    @override
+  @override
   Widget build(BuildContext context) {
     final attempts = incidents.map((incident) {
-      final incidentType =
-          (incident['incident_type'] ?? '').toString().toLowerCase();
+      final incidentType = (incident['incident_type'] ?? '')
+          .toString()
+          .toLowerCase();
 
-      final method = incidentType.contains('biometric')
-          ? 'Biometric'
-          : 'PIN';
+      final method = incidentType.contains('biometric') ? 'Biometric' : 'PIN';
 
       final createdAt = DateTime.tryParse(
         (incident['created_at'] ?? '').toString(),
@@ -515,29 +484,22 @@ class _LoginAttemptList extends StatelessWidget {
       final date = createdAt == null
           ? 'Unknown date'
           : '${createdAt.day.toString().padLeft(2, '0')}/'
-              '${createdAt.month.toString().padLeft(2, '0')}/'
-              '${createdAt.year}';
+                '${createdAt.month.toString().padLeft(2, '0')}/'
+                '${createdAt.year}';
 
       final time = createdAt == null
           ? 'Unknown time'
           : '${createdAt.hour.toString().padLeft(2, '0')}:'
-              '${createdAt.minute.toString().padLeft(2, '0')}';
+                '${createdAt.minute.toString().padLeft(2, '0')}';
 
-      return _LoginAttempt(
-        date: date,
-        time: time,
-        method: method,
-      );
+      return _LoginAttempt(date: date, time: time, method: method);
     }).toList();
 
     return Column(
       children: [
         for (var index = 0; index < attempts.length; index++) ...[
-          _LoginAttemptTile(
-            attempt: attempts[index],
-          ),
-          if (index != attempts.length - 1)
-            const SizedBox(height: 10),
+          _LoginAttemptTile(attempt: attempts[index]),
+          if (index != attempts.length - 1) const SizedBox(height: 10),
         ],
       ],
     );

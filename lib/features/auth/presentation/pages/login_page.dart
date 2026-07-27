@@ -89,22 +89,6 @@ class _LoginPageState extends State<LoginPage>
     }
   }
 
-  bool _isBiometricCancellation(
-  Object error,
-) {
-  final errorText =
-      error.toString().toLowerCase();
-
-  return errorText.contains('usercancel') ||
-      errorText.contains('user_cancel') ||
-      errorText.contains('user canceled') ||
-      errorText.contains('user cancelled') ||
-      errorText.contains('canceled') ||
-      errorText.contains('cancelled') ||
-      errorText.contains('systemcancel') ||
-      errorText.contains('system_cancel');
-}
-
 Future<void> _handleBiometricFailure({
   required String reason,
   required String incidentType,

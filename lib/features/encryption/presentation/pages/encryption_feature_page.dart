@@ -1,9 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
+
 // ignore_for_file: unused_element
 
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
-
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,14 +17,9 @@ import '../../../../services/ocr_service.dart';
 import 'package:encrypto/services/biometric_key_service.dart';
 import '../../../../services/ocr_api_service.dart';
 
-
 enum EncryptionMode { encrypt, decrypt, steganography }
 
-enum ProtectionMethod {
-  biometric,
-  hybrid,
-  passwordOnly,
-}
+enum ProtectionMethod { biometric, hybrid, passwordOnly }
 
 enum _WorkflowStage { setup, processing, success }
 
@@ -69,19 +65,19 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
   String? _generatedKey;
   final _keyController = TextEditingController();
 
-ProtectionMethod _protectionMethod = ProtectionMethod.biometric;
+  ProtectionMethod _protectionMethod = ProtectionMethod.biometric;
 
-final TextEditingController _hybridPasswordController =
-    TextEditingController();
+  final TextEditingController _hybridPasswordController =
+      TextEditingController();
 
-final TextEditingController _hybridConfirmPasswordController =
-    TextEditingController();
+  final TextEditingController _hybridConfirmPasswordController =
+      TextEditingController();
 
-final TextEditingController _stegoPasswordController =
-    TextEditingController();
+  final TextEditingController _stegoPasswordController =
+      TextEditingController();
 
-final TextEditingController _stegoConfirmPasswordController =
-    TextEditingController();
+  final TextEditingController _stegoConfirmPasswordController =
+      TextEditingController();
 
   // Dynamic progress indicators
   _StepState _step1State = _StepState.pending;
@@ -109,17 +105,17 @@ final TextEditingController _stegoConfirmPasswordController =
   }
 
   @override
-void dispose() {
-  _completionTimer?.cancel();
+  void dispose() {
+    _completionTimer?.cancel();
 
-  _keyController.dispose();
-  _hybridPasswordController.dispose();
-  _hybridConfirmPasswordController.dispose();
-  _stegoPasswordController.dispose();
-  _stegoConfirmPasswordController.dispose();
+    _keyController.dispose();
+    _hybridPasswordController.dispose();
+    _hybridConfirmPasswordController.dispose();
+    _stegoPasswordController.dispose();
+    _stegoConfirmPasswordController.dispose();
 
-  super.dispose();
-}
+    super.dispose();
+  }
 
   void _resetFlow() {
     _completionTimer?.cancel();
@@ -187,561 +183,509 @@ void dispose() {
           }
         });
         if (!isStegoCover &&
-    !isStegoFile &&
-    !isStegoExtract &&
-    _activeMode == EncryptionMode.encrypt) {
-  await _uploadAndAnalyzeSelectedFile();
-}
+            !isStegoFile &&
+            !isStegoExtract &&
+            _activeMode == EncryptionMode.encrypt) {
+          await _uploadAndAnalyzeSelectedFile();
+        }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking file: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking file: $e')));
       }
     }
   }
 
   bool _isImageFile(String fileName) {
-  final lowerName = fileName.toLowerCase();
+    final lowerName = fileName.toLowerCase();
 
-  return lowerName.endsWith('.jpg') ||
-      lowerName.endsWith('.jpeg') ||
-      lowerName.endsWith('.png') ||
-      lowerName.endsWith('.webp') ||
-      lowerName.endsWith('.bmp');
-}
+    return lowerName.endsWith('.jpg') ||
+        lowerName.endsWith('.jpeg') ||
+        lowerName.endsWith('.png') ||
+        lowerName.endsWith('.webp') ||
+        lowerName.endsWith('.bmp');
+  }
 
   Future<void> _uploadAndAnalyzeSelectedFile() async {
-  final selectedPath = _selectedFilePath;
-  final selectedName = _selectedFileName;
+    final selectedPath = _selectedFilePath;
+    final selectedName = _selectedFileName;
 
-  if (selectedPath == null || selectedName == null) {
-    return;
-  }
-
-  try {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'AI analyzing selected file...',
-        ),
-      ),
-    );
-
-    final uploadResult = await ApiService.uploadFile(
-      selectedPath,
-    );
-
-    if (uploadResult['status'] != 200) {
-      throw Exception(
-        uploadResult['body']?['detail'] ??
-            'Upload failed',
-      );
-    }
-
-    final fileId = uploadResult['body']?['file_id'] as int;
-
-    late final Map<String, dynamic> aiResult;
-
-debugPrint('SELECTED FILE NAME: $selectedName');
-debugPrint(
-  'IS IMAGE FILE: ${_isImageFile(selectedName)}',
-);
-
-if (_isImageFile(selectedName)) {
-  debugPrint('USING MOBILE OCR FLOW');
-
-  final extractedText =
-      await OcrService.extractTextFromImage(
-    selectedPath,
-  );
-
-  if (extractedText.trim().isEmpty) {
-    throw Exception(
-      'No readable text was detected in the image.',
-    );
-  }
-
-  debugPrint(
-    'MOBILE OCR EXTRACTED '
-    '${extractedText.length} CHARACTERS',
-  );
-
-  debugPrint(
-    'MOBILE OCR TEXT: $extractedText',
-  );
-
- aiResult = await OcrApiService.analyzeExtractedText(
-  fileId: fileId,
-  extractedText: extractedText,
-);
-} else {
-  debugPrint(
-    'USING BACKEND FILE ANALYSIS FLOW',
-  );
-
-  aiResult = await ApiService.analyzeFile(
-    fileId,
-  );
-}
-
-    if (aiResult['status'] != 200) {
-      throw Exception(
-        aiResult['body']?['detail'] ??
-            'AI analysis failed',
-      );
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      _processedFileId = fileId;
-      _aiAnalysis =
-          aiResult['body'] as Map<String, dynamic>;
-    });
-  } catch (error) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'AI analysis failed: $error',
-        ),
-      ),
-    );
-  }
-}
-  void _startWorkflow() async {
-  String decryptionKey = '';
-
-  if (_activeMode == EncryptionMode.encrypt) {
-    if (_selectedFilePath == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a file to encrypt.'),
-        ),
-      );
+    if (selectedPath == null || selectedName == null) {
       return;
     }
 
-    // Hybrid password validation
-    final methodName =
-    _protectionMethod == ProtectionMethod.hybrid
-        ? 'Hybrid'
-        : 'Password';
-    if (_protectionMethod == ProtectionMethod.hybrid ||
-    _protectionMethod == ProtectionMethod.passwordOnly) {
-      final password = _hybridPasswordController.text.trim();
-      final confirmPassword =
-          _hybridConfirmPasswordController.text.trim();
+    try {
+      if (!mounted) return;
 
-      if (password.isEmpty || confirmPassword.isEmpty) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        'Please enter and confirm the $methodName password.',
-      ),
-    ),
-  );
-  return;
-}
-      if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('AI analyzing selected file...')),
+      );
+
+      final uploadResult = await ApiService.uploadFile(selectedPath);
+
+      if (uploadResult['status'] != 200) {
+        throw Exception(uploadResult['body']?['detail'] ?? 'Upload failed');
+      }
+
+      final fileId = uploadResult['body']?['file_id'] as int;
+
+      late final Map<String, dynamic> aiResult;
+
+      debugPrint('SELECTED FILE NAME: $selectedName');
+      debugPrint('IS IMAGE FILE: ${_isImageFile(selectedName)}');
+
+      if (_isImageFile(selectedName)) {
+        debugPrint('USING MOBILE OCR FLOW');
+
+        final extractedText = await OcrService.extractTextFromImage(
+          selectedPath,
+        );
+
+        if (extractedText.trim().isEmpty) {
+          throw Exception('No readable text was detected in the image.');
+        }
+
+        debugPrint(
+          'MOBILE OCR EXTRACTED '
+          '${extractedText.length} CHARACTERS',
+        );
+
+        debugPrint('MOBILE OCR TEXT: $extractedText');
+
+        aiResult = await OcrApiService.analyzeExtractedText(
+          fileId: fileId,
+          extractedText: extractedText,
+        );
+      } else {
+        debugPrint('USING BACKEND FILE ANALYSIS FLOW');
+
+        aiResult = await ApiService.analyzeFile(fileId);
+      }
+
+      if (aiResult['status'] != 200) {
+        throw Exception(aiResult['body']?['detail'] ?? 'AI analysis failed');
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _processedFileId = fileId;
+        _aiAnalysis = aiResult['body'] as Map<String, dynamic>;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('AI analysis failed: $error')));
+    }
+  }
+
+  void _startWorkflow() async {
+    String decryptionKey = '';
+
+    if (_activeMode == EncryptionMode.encrypt) {
+      if (_selectedFilePath == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a file to encrypt.')),
+        );
+        return;
+      }
+
+      // Hybrid password validation
+      final methodName = _protectionMethod == ProtectionMethod.hybrid
+          ? 'Hybrid'
+          : 'Password';
+      if (_protectionMethod == ProtectionMethod.hybrid ||
+          _protectionMethod == ProtectionMethod.passwordOnly) {
+        final password = _hybridPasswordController.text.trim();
+        final confirmPassword = _hybridConfirmPasswordController.text.trim();
+
+        if (password.isEmpty || confirmPassword.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Please enter and confirm the $methodName password.',
+              ),
+            ),
+          );
+          return;
+        }
+        if (password.length < 6) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Hybrid password must contain at least 6 characters.',
+              ),
+            ),
+          );
+          return;
+        }
+
+        if (password != confirmPassword) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Hybrid passwords do not match.')),
+          );
+          return;
+        }
+      }
+
+      // Biometric and Hybrid both require biometric authentication
+      if (_protectionMethod == ProtectionMethod.biometric ||
+          _protectionMethod == ProtectionMethod.hybrid) {
+        final biometricOk = await BiometricKeyService.authenticate();
+
+        if (!mounted) return;
+
+        if (!biometricOk) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Biometric authentication failed.')),
+          );
+          return;
+        }
+      }
+    } else if (_activeMode == EncryptionMode.decrypt) {
+      if (_selectedFilePath == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select an encrypted file.')),
+        );
+        return;
+      }
+
+      if (_protectionMethod == ProtectionMethod.biometric ||
+          _protectionMethod == ProtectionMethod.hybrid) {
+        final biometricOk = await BiometricKeyService.authenticate();
+
+        if (!biometricOk) {
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Biometric authentication failed.')),
+          );
+          return;
+        }
+      }
+
+      if (_protectionMethod == ProtectionMethod.biometric) {
+        if (_selectedFileName == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please select encrypted file first.'),
+            ),
+          );
+          return;
+        }
+
+        final savedKey = await BiometricKeyService.getKeyByFileName(
+          fileName: _selectedFileName!,
+        );
+
+        if (!mounted) return;
+
+        if (savedKey == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No biometric key found for this file.'),
+            ),
+          );
+          return;
+        }
+
+        decryptionKey = savedKey;
+      } else {
+        decryptionKey = _keyController.text.trim();
+
+        if (decryptionKey.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _protectionMethod == ProtectionMethod.hybrid
+                    ? 'Please enter the hybrid password.'
+                    : 'Please enter the sharing password.',
+              ),
+            ),
+          );
+          return;
+        }
+      }
+    } else if (_activeMode == EncryptionMode.steganography) {
+      if (_stegoExtractImagePath == null &&
+          (_stegoCoverImagePath == null || _stegoFilePath == null)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Hybrid password must contain at least 6 characters.',
+              'Please select either stego cover + hidden file or a stego image to extract.',
             ),
           ),
         );
         return;
       }
+    }
 
-      if (password != confirmPassword) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Hybrid passwords do not match.'),
-          ),
-        );
-        return;
+    _completionTimer?.cancel();
+
+    setState(() {
+      _stage = _WorkflowStage.processing;
+      _step1State = _StepState.active;
+      _step2State = _StepState.pending;
+      _step3State = _StepState.pending;
+      _progressPercentage = '0%';
+      _currentProgressLabel = 'Preparing file...';
+      _fileSizeLabel = '0.0 KB';
+    });
+
+    try {
+      String pathForSize = '';
+
+      if (_activeMode == EncryptionMode.encrypt ||
+          _activeMode == EncryptionMode.decrypt) {
+        pathForSize = _selectedFilePath!;
+      } else {
+        pathForSize = _stegoExtractImagePath ?? _stegoFilePath!;
       }
-    }
 
-    // Biometric and Hybrid both require biometric authentication
-    if (_protectionMethod == ProtectionMethod.biometric ||
-    _protectionMethod == ProtectionMethod.hybrid) {
-    final biometricOk = await BiometricKeyService.authenticate();
-
-    if (!biometricOk) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Biometric authentication failed.'),
-        ),
-      );
-      return;
-    }
-    }
-  } else if (_activeMode == EncryptionMode.decrypt) {
-  if (_selectedFilePath == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Please select an encrypted file.'),
-      ),
-    );
-    return;
-  }
-
-  if (_protectionMethod == ProtectionMethod.biometric ||
-      _protectionMethod == ProtectionMethod.hybrid) {
-    final biometricOk = await BiometricKeyService.authenticate();
-
-    if (!biometricOk) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Biometric authentication failed.'),
-        ),
-      );
-      return;
-    }
-  }
-
-  if (_protectionMethod == ProtectionMethod.biometric) {
-    if (_selectedFileName == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select encrypted file first.'),
-        ),
-      );
-      return;
-    }
-
-    final savedKey = await BiometricKeyService.getKeyByFileName(
-      fileName: _selectedFileName!,
-    );
-
-    if (savedKey == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No biometric key found for this file.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    decryptionKey = savedKey;
-  } else {
-    decryptionKey = _keyController.text.trim();
-
-    if (decryptionKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _protectionMethod == ProtectionMethod.hybrid
-                ? 'Please enter the hybrid password.'
-                : 'Please enter the sharing password.',
-          ),
-        ),
-      );
-      return;
-    }
-  }
-  
-  } else if (_activeMode == EncryptionMode.steganography) {
-    if (_stegoExtractImagePath == null &&
-        (_stegoCoverImagePath == null || _stegoFilePath == null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please select either stego cover + hidden file or a stego image to extract.',
-          ),
-        ),
-      );
-      return;
-    }
-  }
-
-
-  _completionTimer?.cancel();
-
-  setState(() {
-    _stage = _WorkflowStage.processing;
-    _step1State = _StepState.active;
-    _step2State = _StepState.pending;
-    _step3State = _StepState.pending;
-    _progressPercentage = '0%';
-    _currentProgressLabel = 'Preparing file...';
-    _fileSizeLabel = '0.0 KB';
-  });
-
-  try {
-    String pathForSize = '';
-
-    if (_activeMode == EncryptionMode.encrypt ||
-        _activeMode == EncryptionMode.decrypt) {
-      pathForSize = _selectedFilePath!;
-    } else {
-      pathForSize = _stegoExtractImagePath ?? _stegoFilePath!;
-    }
-
-    final file = File(pathForSize);
-    final sizeBytes = await file.length();
-    final sizeKb = sizeBytes / 1024.0;
-
-    setState(() {
-      _fileSizeLabel = '${sizeKb.toStringAsFixed(1)} KB';
-      _progressPercentage = '20%';
-      _currentProgressLabel = 'Uploading file to server...';
-    });
-
-    int? fileId;
-
-if (_activeMode == EncryptionMode.encrypt ||
-    _activeMode == EncryptionMode.decrypt) {
-  if (_processedFileId == null) {
-    final uploadResult = await ApiService.uploadFile(pathForSize);
-
-    if (uploadResult['status'] != 200) {
-      throw Exception(uploadResult['body']?['detail'] ?? 'Upload failed');
-    }
-
-    _processedFileId = uploadResult['body']?['file_id'] as int;
-  }
-
-  fileId = _processedFileId!;
-}
-  
-
-    setState(() {
-      _step1State = _StepState.done;
-      _step2State = _StepState.active;
-      _progressPercentage = '50%';
-      _currentProgressLabel = _activeMode == EncryptionMode.encrypt
-          ? 'Encrypting file data...'
-          : _activeMode == EncryptionMode.decrypt
-              ? 'Decrypting file data...'
-              : 'Processing steganography...';
-    });
-
-    if (_activeMode == EncryptionMode.encrypt) {
-  Map<String, dynamic> encryptResult;
-
-  if (_protectionMethod == ProtectionMethod.hybrid ||
-    _protectionMethod == ProtectionMethod.passwordOnly) {
-  encryptResult = await ApiService.encryptFileWithPassword(
-    fileId: fileId!,
-    password: _hybridPasswordController.text.trim(),
-    mode: _protectionMethod == ProtectionMethod.hybrid
-      ? 'hybrid'
-      : 'password_only',
-  );
-} else {
-  encryptResult = await ApiService.encryptFile(fileId!);
-}
-
-  if (encryptResult['status'] != 200) {
-    throw Exception(
-      encryptResult['body']?['detail'] ?? 'Encryption failed',
-    );
-  }
-
-  if (_protectionMethod == ProtectionMethod.biometric) {
-    _generatedKey = encryptResult['body']?['key'] as String?;
-
-    if (_generatedKey != null && _selectedFileName != null) {
-      await BiometricKeyService.saveKeyByFileName(
-        fileName: 'enc_$_selectedFileName',
-        key: _generatedKey!,
-      );
-    }
-  } else {
-    _generatedKey = null;
-  }
-} else if (_activeMode == EncryptionMode.decrypt) {
-
-  Map<String, dynamic> decryptResult;
-
-  if (_protectionMethod == ProtectionMethod.biometric) {
-
-    decryptResult = await ApiService.decryptFile(
-      fileId: fileId!,
-      key: decryptionKey,
-    );
-
-  } else {
-
-    decryptResult = await ApiService.decryptFileWithPassword(
-      fileId: fileId!,
-      password: decryptionKey,
-      mode: _protectionMethod == ProtectionMethod.hybrid
-      ? 'hybrid'
-      : 'password_only',
-    );
-
-  }
-
-  if (decryptResult['status'] != 200) {
-    throw Exception(
-      decryptResult['body']?['detail'] ?? 'Decryption failed',
-    );
-  }
-
-} else {
-       // -----------------------------
-  // Steganography
-  // -----------------------------
-
-  if (_stegoExtractImagePath != null) {
-    // Extract hidden file
-
-    final result = await ApiService.extractStego(
-      stegoImagePath: _stegoExtractImagePath!,
-    );
-
-    if (result["status"] != 200) {
-      throw Exception(
-        result["body"]?["detail"] ?? "Stego extraction failed",
-      );
-    }
-
-    _stegoDownloadFileName =
-        result["body"]["extracted_filename"] as String?;
-  } else {
-    // Hide file inside image
-
-    final result = await ApiService.hideStego(
-      coverImagePath: _stegoCoverImagePath!,
-      hiddenFilePath: _stegoFilePath!,
-    );
-
-    if (result["status"] != 200) {
-      throw Exception(
-        result["body"]?["detail"] ?? "Stego hiding failed",
-      );
-    }
-
-    _stegoDownloadFileName =
-        result["body"]["stego_filename"] as String?;
-  }
- }
-
-    setState(() {
-      _step2State = _StepState.done;
-      _step3State = _StepState.active;
-      _progressPercentage = '90%';
-      _currentProgressLabel = 'Finalizing...';
-    });
-
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-
-    setState(() {
-      _step3State = _StepState.done;
-      _progressPercentage = '100%';
-      _stage = _WorkflowStage.success;
-    });
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Workflow failed: $e')),
-      );
+      final file = File(pathForSize);
+      final sizeBytes = await file.length();
+      final sizeKb = sizeBytes / 1024.0;
 
       setState(() {
-        _stage = _WorkflowStage.setup;
+        _fileSizeLabel = '${sizeKb.toStringAsFixed(1)} KB';
+        _progressPercentage = '20%';
+        _currentProgressLabel = 'Uploading file to server...';
       });
+
+      int? fileId;
+
+      if (_activeMode == EncryptionMode.encrypt ||
+          _activeMode == EncryptionMode.decrypt) {
+        if (_processedFileId == null) {
+          final uploadResult = await ApiService.uploadFile(pathForSize);
+
+          if (uploadResult['status'] != 200) {
+            throw Exception(uploadResult['body']?['detail'] ?? 'Upload failed');
+          }
+
+          _processedFileId = uploadResult['body']?['file_id'] as int;
+        }
+
+        fileId = _processedFileId!;
+      }
+
+      setState(() {
+        _step1State = _StepState.done;
+        _step2State = _StepState.active;
+        _progressPercentage = '50%';
+        _currentProgressLabel = _activeMode == EncryptionMode.encrypt
+            ? 'Encrypting file data...'
+            : _activeMode == EncryptionMode.decrypt
+            ? 'Decrypting file data...'
+            : 'Processing steganography...';
+      });
+
+      if (_activeMode == EncryptionMode.encrypt) {
+        Map<String, dynamic> encryptResult;
+
+        if (_protectionMethod == ProtectionMethod.hybrid ||
+            _protectionMethod == ProtectionMethod.passwordOnly) {
+          encryptResult = await ApiService.encryptFileWithPassword(
+            fileId: fileId!,
+            password: _hybridPasswordController.text.trim(),
+            mode: _protectionMethod == ProtectionMethod.hybrid
+                ? 'hybrid'
+                : 'password_only',
+          );
+        } else {
+          encryptResult = await ApiService.encryptFile(fileId!);
+        }
+
+        if (encryptResult['status'] != 200) {
+          throw Exception(
+            encryptResult['body']?['detail'] ?? 'Encryption failed',
+          );
+        }
+
+        if (_protectionMethod == ProtectionMethod.biometric) {
+          _generatedKey = encryptResult['body']?['key'] as String?;
+
+          if (_generatedKey != null && _selectedFileName != null) {
+            await BiometricKeyService.saveKeyByFileName(
+              fileName: 'enc_$_selectedFileName',
+              key: _generatedKey!,
+            );
+          }
+        } else {
+          _generatedKey = null;
+        }
+      } else if (_activeMode == EncryptionMode.decrypt) {
+        Map<String, dynamic> decryptResult;
+
+        if (_protectionMethod == ProtectionMethod.biometric) {
+          decryptResult = await ApiService.decryptFile(
+            fileId: fileId!,
+            key: decryptionKey,
+          );
+        } else {
+          decryptResult = await ApiService.decryptFileWithPassword(
+            fileId: fileId!,
+            password: decryptionKey,
+            mode: _protectionMethod == ProtectionMethod.hybrid
+                ? 'hybrid'
+                : 'password_only',
+          );
+        }
+
+        if (decryptResult['status'] != 200) {
+          throw Exception(
+            decryptResult['body']?['detail'] ?? 'Decryption failed',
+          );
+        }
+      } else {
+        // -----------------------------
+        // Steganography
+        // -----------------------------
+
+        if (_stegoExtractImagePath != null) {
+          // Extract hidden file
+
+          final result = await ApiService.extractStego(
+            stegoImagePath: _stegoExtractImagePath!,
+          );
+
+          if (result["status"] != 200) {
+            throw Exception(
+              result["body"]?["detail"] ?? "Stego extraction failed",
+            );
+          }
+
+          _stegoDownloadFileName =
+              result["body"]["extracted_filename"] as String?;
+        } else {
+          // Hide file inside image
+
+          final result = await ApiService.hideStego(
+            coverImagePath: _stegoCoverImagePath!,
+            hiddenFilePath: _stegoFilePath!,
+          );
+
+          if (result["status"] != 200) {
+            throw Exception(result["body"]?["detail"] ?? "Stego hiding failed");
+          }
+
+          _stegoDownloadFileName = result["body"]["stego_filename"] as String?;
+        }
+      }
+
+      setState(() {
+        _step2State = _StepState.done;
+        _step3State = _StepState.active;
+        _progressPercentage = '90%';
+        _currentProgressLabel = 'Finalizing...';
+      });
+
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      setState(() {
+        _step3State = _StepState.done;
+        _progressPercentage = '100%';
+        _stage = _WorkflowStage.success;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Workflow failed: $e')));
+
+        setState(() {
+          _stage = _WorkflowStage.setup;
+        });
+      }
     }
   }
-}
 
   Future<void> _downloadAndSaveFile({required String type}) async {
-  try {
-    List<int>? fileBytes;
-    String fileName = 'processed_file';
+    try {
+      List<int>? fileBytes;
+      String fileName = 'processed_file';
 
-    if (_activeMode == EncryptionMode.steganography) {
-      if (_stegoDownloadFileName == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No steganography file to download.')),
-        );
+      if (_activeMode == EncryptionMode.steganography) {
+        if (_stegoDownloadFileName == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No steganography file to download.')),
+          );
+          return;
+        }
+
+        fileBytes = await ApiService.downloadStegoFile(_stegoDownloadFileName!);
+        fileName = _stegoDownloadFileName!;
+      } else {
+        if (_processedFileId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No processed file to download.')),
+          );
+          return;
+        }
+
+        fileBytes = await ApiService.downloadFile(_processedFileId!, type);
+
+        fileName = _selectedFileName ?? 'processed_file';
+
+        if (type == 'encrypted') {
+          fileName = 'enc_$fileName';
+        } else if (type == 'decrypted') {
+          fileName = 'dec_$fileName';
+        }
+      }
+
+      if (fileBytes == null) {
+        throw Exception('Failed to download file.');
+      }
+
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: 'Save $fileName',
+        fileName: fileName,
+        type: FileType.any,
+        bytes: Uint8List.fromList(fileBytes),
+      );
+
+      if (!mounted) return;
+
+      if (savedPath == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Save cancelled')));
         return;
       }
 
-      fileBytes = await ApiService.downloadStegoFile(_stegoDownloadFileName!);
-      fileName = _stegoDownloadFileName!;
-    } else {
-      if (_processedFileId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No processed file to download.')),
-        );
-        return;
-      }
-
-      fileBytes = await ApiService.downloadFile(_processedFileId!, type);
-
-      fileName = _selectedFileName ?? 'processed_file';
-
-      if (type == 'encrypted') {
-        fileName = 'enc_$fileName';
-      } else if (type == 'decrypted') {
-        fileName = 'dec_$fileName';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('File saved to $savedPath')));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving file: $e')));
       }
     }
+  }
 
-    if (fileBytes == null) {
-      throw Exception('Failed to download file.');
-    }
-
-    final savedPath = await FilePicker.saveFile(
-      dialogTitle: 'Save $fileName',
-      fileName: fileName,
-      type: FileType.any,
-      bytes: Uint8List.fromList(fileBytes),
-    );
+  void _cancelWorkflow() {
+    _completionTimer?.cancel();
+    _completionTimer = null;
 
     if (!mounted) return;
 
-    if (savedPath == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Save cancelled')),
-      );
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('File saved to $savedPath')),
-    );
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving file: $e')),
-      );
-    }
+    setState(() {
+      _stage = _WorkflowStage.setup;
+      _step1State = _StepState.pending;
+      _step2State = _StepState.pending;
+      _step3State = _StepState.pending;
+      _progressPercentage = '0%';
+      _currentProgressLabel = '';
+      _fileSizeLabel = '0.0 KB';
+    });
   }
-}
-
-void _cancelWorkflow() {
-  _completionTimer?.cancel();
-  _completionTimer = null;
-
-  if (!mounted) return;
-
-  setState(() {
-    _stage = _WorkflowStage.setup;
-    _step1State = _StepState.pending;
-    _step2State = _StepState.pending;
-    _step3State = _StepState.pending;
-    _progressPercentage = '0%';
-    _currentProgressLabel = '';
-    _fileSizeLabel = '0.0 KB';
-  });
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -786,7 +730,8 @@ void _cancelWorkflow() {
                   });
                 },
                 hybridPasswordController: _hybridPasswordController,
-                hybridConfirmPasswordController: _hybridConfirmPasswordController,
+                hybridConfirmPasswordController:
+                    _hybridConfirmPasswordController,
                 stegoPasswordController: _stegoPasswordController,
                 stegoConfirmPasswordController: _stegoConfirmPasswordController,
                 onPickFile: () => _pickFile(
@@ -827,12 +772,12 @@ void _cancelWorkflow() {
                 onRepeatPressed: _resetFlow,
                 generatedKey: _generatedKey,
                 onDownload: () => _downloadAndSaveFile(
-  type: _activeMode == EncryptionMode.encrypt
-      ? 'encrypted'
-      : _activeMode == EncryptionMode.decrypt
-          ? 'decrypted'
-          : 'stego',
-),
+                  type: _activeMode == EncryptionMode.encrypt
+                      ? 'encrypted'
+                      : _activeMode == EncryptionMode.decrypt
+                      ? 'decrypted'
+                      : 'stego',
+                ),
               ),
             },
           ),
@@ -841,6 +786,7 @@ void _cancelWorkflow() {
     );
   }
 }
+
 // ---------------------------------------------------------------------------
 // Setup view
 // ---------------------------------------------------------------------------
@@ -918,34 +864,34 @@ class _SetupView extends StatelessWidget {
             const SizedBox(height: 22),
             switch (mode) {
               EncryptionMode.encrypt => _EncryptSetupContent(
-              onStartPressed: onStartPressed,
-              selectedFileName: selectedFileName,
-              onPickFile: onPickFile,
-              aiAnalysis: aiAnalysis,
-              protectionMethod: protectionMethod,
-              onProtectionMethodChanged: onProtectionMethodChanged,
-              passwordController: hybridPasswordController,
-              confirmPasswordController: hybridConfirmPasswordController,
-),
-             EncryptionMode.decrypt => _DecryptSetupContent(
-            onStartPressed: onStartPressed,
-            selectedFileName: selectedFileName,
-            keyController: keyController,
-            onPickFile: onPickFile,
-            protectionMethod: protectionMethod,
-            onProtectionMethodChanged: onProtectionMethodChanged,
-),
+                onStartPressed: onStartPressed,
+                selectedFileName: selectedFileName,
+                onPickFile: onPickFile,
+                aiAnalysis: aiAnalysis,
+                protectionMethod: protectionMethod,
+                onProtectionMethodChanged: onProtectionMethodChanged,
+                passwordController: hybridPasswordController,
+                confirmPasswordController: hybridConfirmPasswordController,
+              ),
+              EncryptionMode.decrypt => _DecryptSetupContent(
+                onStartPressed: onStartPressed,
+                selectedFileName: selectedFileName,
+                keyController: keyController,
+                onPickFile: onPickFile,
+                protectionMethod: protectionMethod,
+                onProtectionMethodChanged: onProtectionMethodChanged,
+              ),
               EncryptionMode.steganography => _SteganographySetupContent(
-              onStartPressed: onStartPressed,
-              stegoCoverImageName: stegoCoverImageName,
-              stegoFileName: stegoFileName,
-              stegoExtractImageName: stegoExtractImageName,
-              onPickStegoCover: onPickStegoCover,
-              onPickStegoFile: onPickStegoFile,
-              onPickStegoExtract: onPickStegoExtract,
-              passwordController: stegoPasswordController,
-              confirmPasswordController: stegoConfirmPasswordController,
-),
+                onStartPressed: onStartPressed,
+                stegoCoverImageName: stegoCoverImageName,
+                stegoFileName: stegoFileName,
+                stegoExtractImageName: stegoExtractImageName,
+                onPickStegoCover: onPickStegoCover,
+                onPickStegoFile: onPickStegoFile,
+                onPickStegoExtract: onPickStegoExtract,
+                passwordController: stegoPasswordController,
+                confirmPasswordController: stegoConfirmPasswordController,
+              ),
             },
           ],
         ),
@@ -984,184 +930,205 @@ class _EncryptSetupContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionLabel(label: 'Select Photo or File', icon: Icons.image_outlined),
+        _SectionLabel(
+          label: 'Select Photo or File',
+          icon: Icons.image_outlined,
+        ),
         const SizedBox(height: 10),
         _UploadCard(
           label: selectedFileName ?? 'Click to upload photo or file',
-          hint: selectedFileName != null ? 'File picked successfully' : 'JPG, PNG, PDF up to 20MB',
-          icon: selectedFileName != null ? Icons.verified_user_rounded : Icons.image_rounded,
+          hint: selectedFileName != null
+              ? 'File picked successfully'
+              : 'JPG, PNG, PDF up to 20MB',
+          icon: selectedFileName != null
+              ? Icons.verified_user_rounded
+              : Icons.image_rounded,
           onTap: onPickFile,
         ),
         const SizedBox(height: 14),
-        _SectionLabel(
-          label: 'Scan Document',
-          icon: Icons.file_present_rounded,
-        ),
+        _SectionLabel(label: 'Scan Document', icon: Icons.file_present_rounded),
         const SizedBox(height: 10),
         _UploadCard(
           label: selectedFileName ?? 'Scan or attach a document',
-          hint: selectedFileName != null ? 'Document picked successfully' : 'Scan or attach a document',
-          icon: selectedFileName != null ? Icons.verified_user_rounded : Icons.lock_outlined,
+          hint: selectedFileName != null
+              ? 'Document picked successfully'
+              : 'Scan or attach a document',
+          icon: selectedFileName != null
+              ? Icons.verified_user_rounded
+              : Icons.lock_outlined,
           onTap: onPickFile,
         ),
         const SizedBox(height: 22),
         _SectionLabel(label: 'Encryption Option', icon: Icons.settings_rounded),
         const SizedBox(height: 12),
         _OptionRow(
-  label: 'Biometric',
-  icon: Icons.fingerprint_rounded,
-  color: const Color(0xFF60A5FA),
-  selected: protectionMethod == ProtectionMethod.biometric,
-  onTap: () {
-    onProtectionMethodChanged(ProtectionMethod.biometric);
-  },
-),
+          label: 'Biometric',
+          icon: Icons.fingerprint_rounded,
+          color: const Color(0xFF60A5FA),
+          selected: protectionMethod == ProtectionMethod.biometric,
+          onTap: () {
+            onProtectionMethodChanged(ProtectionMethod.biometric);
+          },
+        ),
 
-  const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
- _OptionRow(
-  label: 'Hybrid',
-  icon: Icons.security_rounded,
-  color: const Color(0xFF34D399),
-  selected: protectionMethod == ProtectionMethod.hybrid,
-  onTap: () {
-    onProtectionMethodChanged(ProtectionMethod.hybrid);
-  },
-),
+        _OptionRow(
+          label: 'Hybrid',
+          icon: Icons.security_rounded,
+          color: const Color(0xFF34D399),
+          selected: protectionMethod == ProtectionMethod.hybrid,
+          onTap: () {
+            onProtectionMethodChanged(ProtectionMethod.hybrid);
+          },
+        ),
 
-const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
-_OptionRow(
-  label: 'Password Only',
-  icon: Icons.lock_outlined,
-  color: const Color(0xFFA78BFA),
-  selected: protectionMethod == ProtectionMethod.passwordOnly,
-  onTap: () {
-    onProtectionMethodChanged(ProtectionMethod.passwordOnly);
-  },
-),
+        _OptionRow(
+          label: 'Password Only',
+          icon: Icons.lock_outlined,
+          color: const Color(0xFFA78BFA),
+          selected: protectionMethod == ProtectionMethod.passwordOnly,
+          onTap: () {
+            onProtectionMethodChanged(ProtectionMethod.passwordOnly);
+          },
+        ),
 
-if (protectionMethod == ProtectionMethod.hybrid ||
-    protectionMethod == ProtectionMethod.passwordOnly)...[
-  const SizedBox(height: 16),
+        if (protectionMethod == ProtectionMethod.hybrid ||
+            protectionMethod == ProtectionMethod.passwordOnly) ...[
+          const SizedBox(height: 16),
 
-  TextField(
-    controller: passwordController,
-    obscureText: true,
-    style: const TextStyle(color: Colors.white),
-    decoration: _secureInputDecoration(
-      hint: protectionMethod == ProtectionMethod.hybrid
-    ? 'Enter hybrid password'
-    : 'Enter sharing password',
-      icon: Icons.lock_outline_rounded,
-    ),
-  ),
+          TextField(
+            controller: passwordController,
+            obscureText: true,
+            style: const TextStyle(color: Colors.white),
+            decoration: _secureInputDecoration(
+              hint: protectionMethod == ProtectionMethod.hybrid
+                  ? 'Enter hybrid password'
+                  : 'Enter sharing password',
+              icon: Icons.lock_outline_rounded,
+            ),
+          ),
 
-  const SizedBox(height: 10),
+          const SizedBox(height: 10),
 
-  TextField(
-    controller: confirmPasswordController,
-    obscureText: true,
-    style: const TextStyle(color: Colors.white),
-    decoration: _secureInputDecoration(
-      hint: protectionMethod == ProtectionMethod.hybrid
-    ? 'Confirm hybrid password'
-    : 'Confirm sharing password',
-      icon: Icons.lock_reset_rounded,
-    ),
-  ),
+          TextField(
+            controller: confirmPasswordController,
+            obscureText: true,
+            style: const TextStyle(color: Colors.white),
+            decoration: _secureInputDecoration(
+              hint: protectionMethod == ProtectionMethod.hybrid
+                  ? 'Confirm hybrid password'
+                  : 'Confirm sharing password',
+              icon: Icons.lock_reset_rounded,
+            ),
+          ),
 
-  const SizedBox(height: 8),
+          const SizedBox(height: 8),
 
-  Text(
-  protectionMethod == ProtectionMethod.hybrid
-      ? 'Hybrid protection requires both your password and biometric authentication.'
-      : 'Use Password Only for files that will be shared through Steganography.',
-  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-    color: Colors.white.withValues(alpha: 0.60),
-    ),
-  ),
-],
+          Text(
+            protectionMethod == ProtectionMethod.hybrid
+                ? 'Hybrid protection requires both your password and biometric authentication.'
+                : 'Use Password Only for files that will be shared through Steganography.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.60),
+            ),
+          ),
+        ],
         const SizedBox(height: 22),
         if (aiAnalysis != null) ...[
           const SizedBox(height: 20),
           Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-         ),
-         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-            children: [
-              const Icon(Icons.auto_awesome_rounded, color: Color(0xFF60A5FA)),
-            const SizedBox(width: 8),
-            Text(
-              'AI Security Advisor',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
             ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Text(
-          'Risk Level : ${aiAnalysis!['risk_level']}',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        Text(
-          'Confidence : ${aiAnalysis!['confidence'] ?? '-'}%',
-          style: const TextStyle(color: Colors.white),
-        ),
-        Text(
-          'Risk Score : ${aiAnalysis!['risk_score']}',
-          style: const TextStyle(color: Colors.white),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          aiAnalysis!['reason'] ?? '',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          'Detected:',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 6),
-        ...((aiAnalysis!['findings'] as List?) ?? []).map(
-          (item) => Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 16),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    item.toString(),
-                    style: const TextStyle(color: Colors.white70),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Color(0xFF60A5FA),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'AI Security Advisor',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Risk Level : ${aiAnalysis!['risk_level']}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Confidence : ${aiAnalysis!['confidence'] ?? '-'}%',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                Text(
+                  'Risk Score : ${aiAnalysis!['risk_score']}',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  aiAnalysis!['reason'] ?? '',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Detected:',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                ...((aiAnalysis!['findings'] as List?) ?? []).map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.greenAccent,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            item.toString(),
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Recommended : ${aiAnalysis!['recommendation']}',
+                  style: const TextStyle(
+                    color: Colors.greenAccent,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Recommended : ${aiAnalysis!['recommendation']}',
-          style: const TextStyle(
-            color: Colors.greenAccent,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    ),
-  ),
-  const SizedBox(height: 20),
-],
+          const SizedBox(height: 20),
+        ],
 
         _GradientCTAButton(
           label: 'Start Encryption',
@@ -1190,7 +1157,7 @@ class _DecryptSetupContent extends StatefulWidget {
   final TextEditingController keyController;
   final VoidCallback onPickFile;
   final ProtectionMethod protectionMethod;
-final ValueChanged<ProtectionMethod> onProtectionMethodChanged;
+  final ValueChanged<ProtectionMethod> onProtectionMethodChanged;
 
   @override
   State<_DecryptSetupContent> createState() => _DecryptSetupContentState();
@@ -1211,129 +1178,115 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
         const SizedBox(height: 10),
         _UploadCard(
           label: widget.selectedFileName ?? 'Upload Encrypted File',
-          hint: widget.selectedFileName != null ? 'Encrypted file picked' : 'Drop your file here',
-          icon: widget.selectedFileName != null ? Icons.verified_user_rounded : Icons.lock_outlined,
+          hint: widget.selectedFileName != null
+              ? 'Encrypted file picked'
+              : 'Drop your file here',
+          icon: widget.selectedFileName != null
+              ? Icons.verified_user_rounded
+              : Icons.lock_outlined,
           onTap: widget.onPickFile,
         ),
-        _SectionLabel(
-  label: 'Decryption Option',
-  icon: Icons.settings_rounded,
-),
+        _SectionLabel(label: 'Decryption Option', icon: Icons.settings_rounded),
 
-const SizedBox(height: 12),
+        const SizedBox(height: 12),
 
-_OptionRow(
-  label: 'Biometric',
-  icon: Icons.fingerprint_rounded,
-  color: const Color(0xFF60A5FA),
-  selected:
-      widget.protectionMethod == ProtectionMethod.biometric,
-  onTap: () {
-    widget.onProtectionMethodChanged(
-      ProtectionMethod.biometric,
-    );
-  },
-),
+        _OptionRow(
+          label: 'Biometric',
+          icon: Icons.fingerprint_rounded,
+          color: const Color(0xFF60A5FA),
+          selected: widget.protectionMethod == ProtectionMethod.biometric,
+          onTap: () {
+            widget.onProtectionMethodChanged(ProtectionMethod.biometric);
+          },
+        ),
 
-const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
-_OptionRow(
-  label: 'Hybrid',
-  icon: Icons.security_rounded,
-  color: const Color(0xFF34D399),
-  selected:
-      widget.protectionMethod == ProtectionMethod.hybrid,
-  onTap: () {
-    widget.onProtectionMethodChanged(
-      ProtectionMethod.hybrid,
-    );
-  },
-),
+        _OptionRow(
+          label: 'Hybrid',
+          icon: Icons.security_rounded,
+          color: const Color(0xFF34D399),
+          selected: widget.protectionMethod == ProtectionMethod.hybrid,
+          onTap: () {
+            widget.onProtectionMethodChanged(ProtectionMethod.hybrid);
+          },
+        ),
 
-const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
-_OptionRow(
-  label: 'Password Only',
-  icon: Icons.lock_outline_rounded,
-  color: const Color(0xFFA78BFA),
-  selected:
-      widget.protectionMethod == ProtectionMethod.passwordOnly,
-  onTap: () {
-    widget.onProtectionMethodChanged(
-      ProtectionMethod.passwordOnly,
-    );
-  },
-),
+        _OptionRow(
+          label: 'Password Only',
+          icon: Icons.lock_outline_rounded,
+          color: const Color(0xFFA78BFA),
+          selected: widget.protectionMethod == ProtectionMethod.passwordOnly,
+          onTap: () {
+            widget.onProtectionMethodChanged(ProtectionMethod.passwordOnly);
+          },
+        ),
         const SizedBox(height: 18),
- if (widget.protectionMethod != ProtectionMethod.biometric) ...[
-  _SectionLabel(
-    label: 'Decryption Password',
-    icon: Icons.key_rounded,
-  ),
+        if (widget.protectionMethod != ProtectionMethod.biometric) ...[
+          _SectionLabel(label: 'Decryption Password', icon: Icons.key_rounded),
 
-  const SizedBox(height: 10),
+          const SizedBox(height: 10),
 
-  TextField(
-    controller: widget.keyController,
-    obscureText: _obscurePassword,
-    style: textTheme.bodyLarge?.copyWith(
-      color: Colors.white,
-    ),
-    decoration: InputDecoration(
-      hintText: widget.protectionMethod ==
-              ProtectionMethod.hybrid
-          ? 'Enter hybrid password'
-          : 'Enter sharing password',
+          TextField(
+            controller: widget.keyController,
+            obscureText: _obscurePassword,
+            style: textTheme.bodyLarge?.copyWith(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: widget.protectionMethod == ProtectionMethod.hybrid
+                  ? 'Enter hybrid password'
+                  : 'Enter sharing password',
 
-      hintStyle: textTheme.bodyMedium?.copyWith(
-        color: Colors.white.withValues(alpha: 0.45),
-      ),
+              hintStyle: textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.45),
+              ),
 
-      prefixIcon: Icon(
-        Icons.lock_outline_rounded,
-        color: Colors.white.withValues(alpha: 0.6),
-      ),
+              prefixIcon: Icon(
+                Icons.lock_outline_rounded,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
 
-      suffixIcon: IconButton(
-        onPressed: () {
-          setState(() {
-            _obscurePassword = !_obscurePassword;
-          });
-        },
-        icon: Icon(
-          _obscurePassword
-              ? Icons.visibility_off_outlined
-              : Icons.visibility_outlined,
-          color: Colors.white.withValues(alpha: 0.6),
-        ),
-      ),
+              suffixIcon: IconButton(
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: Colors.white.withValues(alpha: 0.6),
+                ),
+              ),
 
-      filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.08),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.08),
 
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
 
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: Colors.white.withValues(alpha: 0.15),
-        ),
-      ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.15),
+                ),
+              ),
 
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: AppColors.accent,
-          width: 1.8,
-        ),
-      ),
-    ),
-  ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: AppColors.accent,
+                  width: 1.8,
+                ),
+              ),
+            ),
+          ),
 
-  const SizedBox(height: 14),
-],
+          const SizedBox(height: 14),
+        ],
         // Checkbox for hidden data
         GestureDetector(
           onTap: () =>
@@ -1383,26 +1336,26 @@ _OptionRow(
 // ---------------------------------------------------------------------------
 class _SteganographySetupContent extends StatelessWidget {
   const _SteganographySetupContent({
-  required this.onStartPressed,
-  required this.stegoCoverImageName,
-  required this.stegoFileName,
-  required this.stegoExtractImageName,
-  required this.onPickStegoCover,
-  required this.onPickStegoFile,
-  required this.onPickStegoExtract,
-  required this.passwordController,
-  required this.confirmPasswordController,
-});
+    required this.onStartPressed,
+    required this.stegoCoverImageName,
+    required this.stegoFileName,
+    required this.stegoExtractImageName,
+    required this.onPickStegoCover,
+    required this.onPickStegoFile,
+    required this.onPickStegoExtract,
+    required this.passwordController,
+    required this.confirmPasswordController,
+  });
 
   final VoidCallback onStartPressed;
-final String? stegoCoverImageName;
-final String? stegoFileName;
-final String? stegoExtractImageName;
-final VoidCallback onPickStegoCover;
-final VoidCallback onPickStegoFile;
-final VoidCallback onPickStegoExtract;
-final TextEditingController passwordController;
-final TextEditingController confirmPasswordController;
+  final String? stegoCoverImageName;
+  final String? stegoFileName;
+  final String? stegoExtractImageName;
+  final VoidCallback onPickStegoCover;
+  final VoidCallback onPickStegoFile;
+  final VoidCallback onPickStegoExtract;
+  final TextEditingController passwordController;
+  final TextEditingController confirmPasswordController;
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1415,15 +1368,21 @@ final TextEditingController confirmPasswordController;
         const SizedBox(height: 10),
         _UploadCard(
           label: stegoCoverImageName ?? 'Upload Cover Image',
-          hint: stegoCoverImageName != null ? 'Cover image loaded' : 'The carrier image',
-          icon: stegoCoverImageName != null ? Icons.verified_user_rounded : Icons.image_rounded,
+          hint: stegoCoverImageName != null
+              ? 'Cover image loaded'
+              : 'The carrier image',
+          icon: stegoCoverImageName != null
+              ? Icons.verified_user_rounded
+              : Icons.image_rounded,
           onTap: onPickStegoCover,
         ),
         const SizedBox(height: 10),
         _UploadCard(
           label: stegoFileName ?? 'Upload Encrypted File',
           hint: stegoFileName != null ? 'File to hide loaded' : 'Data to hide',
-          icon: stegoFileName != null ? Icons.verified_user_rounded : Icons.lock_outlined,
+          icon: stegoFileName != null
+              ? Icons.verified_user_rounded
+              : Icons.lock_outlined,
           onTap: onPickStegoFile,
         ),
         const SizedBox(height: 18),
@@ -1460,8 +1419,12 @@ final TextEditingController confirmPasswordController;
         const SizedBox(height: 10),
         _UploadCard(
           label: stegoExtractImageName ?? 'Upload Stego Image',
-          hint: stegoExtractImageName != null ? 'Stego image loaded' : 'Image with hidden data',
-          icon: stegoExtractImageName != null ? Icons.verified_user_rounded : Icons.image_search_rounded,
+          hint: stegoExtractImageName != null
+              ? 'Stego image loaded'
+              : 'Image with hidden data',
+          icon: stegoExtractImageName != null
+              ? Icons.verified_user_rounded
+              : Icons.image_search_rounded,
           onTap: onPickStegoExtract,
         ),
         const SizedBox(height: 18),
@@ -1566,10 +1529,7 @@ class _ProcessingView extends StatelessWidget {
                     state: step2State,
                   ),
                   const SizedBox(height: 10),
-                  _ProgressStep(
-                    label: 'Finalizing process',
-                    state: step3State,
-                  ),
+                  _ProgressStep(label: 'Finalizing process', state: step3State),
                 ],
               ),
             ),
@@ -1671,37 +1631,37 @@ class _SuccessViewState extends State<_SuccessView> {
             ),
             const SizedBox(height: 22),
             if (widget.mode == EncryptionMode.encrypt) ...[
-  EncryptionSurfaceCard(
-    padding: const EdgeInsets.all(16),
-    child: Column(
-      children: [
-        const Icon(
-          Icons.fingerprint_rounded,
-          color: Color(0xFF60A5FA),
-          size: 28,
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Encryption Key Secured',
-          style: textTheme.titleSmall?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Your encryption key is protected with biometric authentication. Use fingerprint or face unlock during decryption.',
-          textAlign: TextAlign.center,
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.white.withValues(alpha: 0.78),
-            height: 1.4,
-          ),
-        ),
-      ],
-    ),
-  ),
-  const SizedBox(height: 18),
-],
+              EncryptionSurfaceCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.fingerprint_rounded,
+                      color: Color(0xFF60A5FA),
+                      size: 28,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Encryption Key Secured',
+                      style: textTheme.titleSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Your encryption key is protected with biometric authentication. Use fingerprint or face unlock during decryption.',
+                      textAlign: TextAlign.center,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.78),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+            ],
             if (widget.mode == EncryptionMode.decrypt) ...[
               EncryptionSurfaceCard(
                 child: Column(
@@ -1729,7 +1689,11 @@ class _SuccessViewState extends State<_SuccessView> {
                 icon: Icons.share_rounded,
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Share option is not configured. Use Download to save the file.')),
+                    const SnackBar(
+                      content: Text(
+                        'Share option is not configured. Use Download to save the file.',
+                      ),
+                    ),
                   );
                 },
               ),
@@ -1765,7 +1729,11 @@ class _SuccessViewState extends State<_SuccessView> {
                 gradient: AppGradients.success,
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('File is already securely saved on the server.')),
+                    const SnackBar(
+                      content: Text(
+                        'File is already securely saved on the server.',
+                      ),
+                    ),
                   );
                 },
               ),
@@ -2066,9 +2034,7 @@ class _OptionRow extends StatelessWidget {
               child: Icon(
                 icon,
                 size: 14,
-                color: selected
-                    ? color
-                    : Colors.white.withValues(alpha: 0.5),
+                color: selected ? color : Colors.white.withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(width: 12),
@@ -2079,8 +2045,7 @@ class _OptionRow extends StatelessWidget {
                   color: selected
                       ? Colors.white
                       : Colors.white.withValues(alpha: 0.75),
-                  fontWeight:
-                      selected ? FontWeight.w600 : FontWeight.w400,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
             ),
@@ -2132,7 +2097,6 @@ class _ProgressStep extends StatelessWidget {
         Colors.white.withValues(alpha: 0.3),
       ),
     };
-    
 
     return Row(
       children: [
@@ -2183,33 +2147,21 @@ InputDecoration _secureInputDecoration({
 }) {
   return InputDecoration(
     hintText: hint,
-    hintStyle: TextStyle(
-      color: Colors.white.withValues(alpha: 0.45),
-    ),
-    prefixIcon: Icon(
-      icon,
-      color: Colors.white.withValues(alpha: 0.60),
-    ),
+    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.45)),
+    prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.60)),
     filled: true,
     fillColor: Colors.white.withValues(alpha: 0.08),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(
-        color: Colors.white.withValues(alpha: 0.15),
-      ),
+      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(
-        color: Colors.white.withValues(alpha: 0.15),
-      ),
+      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(
-        color: AppColors.accent,
-        width: 1.8,
-      ),
+      borderSide: const BorderSide(color: AppColors.accent, width: 1.8),
     ),
   );
 }

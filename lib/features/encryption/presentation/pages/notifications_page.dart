@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
@@ -15,145 +17,120 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   final List<_NotificationItem> _newItems = [];
-final List<_NotificationItem> _todayItems = [];
+  final List<_NotificationItem> _todayItems = [];
 
-bool _loadingNotifications = true;
-String? _notificationError;
+  bool _loadingNotifications = true;
+  String? _notificationError;
 
-@override
-void initState() {
-  super.initState();
-  _loadNotifications();
-}
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
 
-Future<void> _loadNotifications() async {
-  try {
-    final result = await ApiService.getSecurityIncidents();
+  Future<void> _loadNotifications() async {
+    try {
+      final result = await ApiService.getSecurityIncidents();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (result['status'] != 200 ||
-        result['body'] is! Map) {
+      if (result['status'] != 200 || result['body'] is! Map) {
+        setState(() {
+          _loadingNotifications = false;
+          _notificationError = 'Unable to load notifications';
+        });
+        return;
+      }
+
+      final body = Map<String, dynamic>.from(result['body'] as Map);
+
+      final rawIncidents = body['incidents'];
+
+      final incidents = rawIncidents is List
+          ? rawIncidents
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList()
+          : <Map<String, dynamic>>[];
+
+      final notificationItems = <_NotificationItem>[];
+
+      for (var index = 0; index < incidents.length; index++) {
+        notificationItems.add(
+          _notificationFromIncident(incidents[index], unread: index < 3),
+        );
+      }
+
+      setState(() {
+        _newItems
+          ..clear()
+          ..addAll(notificationItems.take(3));
+
+        _todayItems
+          ..clear()
+          ..addAll(notificationItems.skip(3));
+
+        _loadingNotifications = false;
+        _notificationError = null;
+      });
+    } catch (error) {
+      debugPrint('Notifications loading failed: $error');
+
+      if (!mounted) return;
+
       setState(() {
         _loadingNotifications = false;
-        _notificationError =
-            'Unable to load notifications';
+        _notificationError = 'Unable to load notifications';
       });
-      return;
+    }
+  }
+
+  _NotificationItem _notificationFromIncident(
+    Map<String, dynamic> incident, {
+    required bool unread,
+  }) {
+    final incidentType =
+        incident['incident_type']?.toString().toLowerCase() ?? '';
+
+    final isBiometric = incidentType.contains('biometric');
+
+    final reason =
+        incident['reason']?.toString() ??
+        'Unauthorized access attempt detected';
+
+    return _NotificationItem(
+      icon: isBiometric
+          ? Icons.fingerprint_rounded
+          : Icons.warning_amber_rounded,
+      title: isBiometric
+          ? 'Intruder alert: Biometric attempt'
+          : 'Intruder alert: Failed login attempt',
+      body: reason,
+      time: _formatIncidentTime(incident['created_at']?.toString()),
+      color: AppColors.error,
+      unread: unread,
+      hasActions: true,
+    );
+  }
+
+  String _formatIncidentTime(String? rawDate) {
+    if (rawDate == null || rawDate.isEmpty) {
+      return 'Unknown date';
     }
 
-    final body = Map<String, dynamic>.from(
-      result['body'] as Map,
-    );
+    final dateTime = DateTime.tryParse(rawDate)?.toLocal();
 
-    final rawIncidents = body['incidents'];
-
-    final incidents = rawIncidents is List
-        ? rawIncidents
-            .whereType<Map>()
-            .map(
-              (item) => Map<String, dynamic>.from(item),
-            )
-            .toList()
-        : <Map<String, dynamic>>[];
-
-    final notificationItems = <_NotificationItem>[];
-
-    for (var index = 0;
-        index < incidents.length;
-        index++) {
-      notificationItems.add(
-        _notificationFromIncident(
-          incidents[index],
-          unread: index < 3,
-        ),
-      );
+    if (dateTime == null) {
+      return rawDate;
     }
 
-    setState(() {
-      _newItems
-        ..clear()
-        ..addAll(notificationItems.take(3));
+    final day = dateTime.day.toString().padLeft(2, '0');
+    final month = dateTime.month.toString().padLeft(2, '0');
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
 
-      _todayItems
-        ..clear()
-        ..addAll(notificationItems.skip(3));
-
-      _loadingNotifications = false;
-      _notificationError = null;
-    });
-  } catch (error) {
-    debugPrint(
-      'Notifications loading failed: $error',
-    );
-
-    if (!mounted) return;
-
-    setState(() {
-      _loadingNotifications = false;
-      _notificationError =
-          'Unable to load notifications';
-    });
+    return '$day/$month/${dateTime.year}  $hour:$minute';
   }
-}
-
-_NotificationItem _notificationFromIncident(
-  Map<String, dynamic> incident, {
-  required bool unread,
-}) {
-  final incidentType =
-      incident['incident_type']
-          ?.toString()
-          .toLowerCase() ??
-      '';
-
-  final isBiometric =
-      incidentType.contains('biometric');
-
-  final reason =
-      incident['reason']?.toString() ??
-      'Unauthorized access attempt detected';
-
-  return _NotificationItem(
-    icon: isBiometric
-        ? Icons.fingerprint_rounded
-        : Icons.warning_amber_rounded,
-    title: isBiometric
-        ? 'Intruder alert: Biometric attempt'
-        : 'Intruder alert: Failed login attempt',
-    body: reason,
-    time: _formatIncidentTime(
-      incident['created_at']?.toString(),
-    ),
-    color: AppColors.error,
-    unread: unread,
-    hasActions: true,
-  );
-}
-
-String _formatIncidentTime(String? rawDate) {
-  if (rawDate == null || rawDate.isEmpty) {
-    return 'Unknown date';
-  }
-
-  final dateTime =
-      DateTime.tryParse(rawDate)?.toLocal();
-
-  if (dateTime == null) {
-    return rawDate;
-  }
-
-  final day =
-      dateTime.day.toString().padLeft(2, '0');
-  final month =
-      dateTime.month.toString().padLeft(2, '0');
-  final hour =
-      dateTime.hour.toString().padLeft(2, '0');
-  final minute =
-      dateTime.minute.toString().padLeft(2, '0');
-
-  return '$day/$month/${dateTime.year}  $hour:$minute';
-}
 
   int get _unreadCount =>
       [..._newItems, ..._todayItems].where((item) => item.unread).length;
