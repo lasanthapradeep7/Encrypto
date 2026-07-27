@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
 import 'package:encrypto/services/api_service.dart';
+import 'dart:async';
 
 class VaultHomePage extends StatefulWidget {
   const VaultHomePage({
     super.key,
-    required this.onOpenWorkflow,
-    required this.onOpenSteganographyWorkflow,
-    required this.onOpenProfile,
-    required this.onOpenNotifications,
-    required this.onOpenSettings,
+  required this.onOpenWorkflow,
+  required this.onOpenSteganographyWorkflow,
+  required this.onOpenProfile,
+  required this.onOpenNotifications,
+  required this.onOpenSettings,
   });
 
   final VoidCallback onOpenWorkflow;
@@ -30,18 +31,50 @@ class _VaultHomePageState extends State<VaultHomePage> {
   int _protectedSessions = 0;
   int _securityIncidents = 0;
 
+
   List<Map<String, dynamic>> _recentFiles = [];
 
+    Timer? _dashboardRefreshTimer;
+
   @override
-  void initState() {
-    super.initState();
-    _loadDashboard();
-  }
+void initState() {
+  super.initState();
+
+  unawaited(_loadDashboard());
+
+  _dashboardRefreshTimer = Timer.periodic(
+    const Duration(seconds: 2),
+    (_) {
+      unawaited(_loadDashboard());
+    },
+  );
+}
+
+@override
+void dispose() {
+  _dashboardRefreshTimer?.cancel();
+  super.dispose();
+}
+
 
   Future<void> _loadDashboard() async {
+    debugPrint(
+    'VAULT DASHBOARD REFRESH STARTED',
+  );
+
   try {
     final dashboardResult =
         await ApiService.getVaultDashboard();
+
+        debugPrint(
+  'VAULT DASHBOARD STATUS: '
+  '${dashboardResult['status']}',
+);
+
+debugPrint(
+  'VAULT DASHBOARD BODY: '
+  '${dashboardResult['body']}',
+);
 
     final securityResult =
         await ApiService.getSecurityIncidents();
@@ -112,6 +145,8 @@ if (rawRecentFiles is List) {
   } catch (error) {
     debugPrint('Dashboard loading failed: $error');
   }
+
+
 }
   @override
   Widget build(BuildContext context) {
@@ -184,6 +219,18 @@ if (rawRecentFiles is List) {
                               style: textTheme.titleMedium?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const Spacer(),
+
+                            IconButton(
+                              tooltip: 'Refresh dashboard',
+                              onPressed: () {
+                                _loadDashboard();
+                              },
+                              icon: const Icon(
+                                Icons.refresh_rounded,
+                                color: Colors.white,
                               ),
                             ),
                           ],

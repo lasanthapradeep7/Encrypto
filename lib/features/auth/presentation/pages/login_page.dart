@@ -7,7 +7,6 @@ import 'package:encrypto/features/auth/presentation/pages/signup_page.dart';
 import 'package:encrypto/shared/widgets/auth/auth_layout.dart';
 import 'package:encrypto/services/api_service.dart';
 import 'package:encrypto/services/intruder_camera_service.dart';
-import 'package:flutter/services.dart';
 import 'package:encrypto/services/session_service.dart';
 
 
@@ -90,98 +89,284 @@ class _LoginPageState extends State<LoginPage>
     }
   }
 
-  Future<void> _authenticateWithBiometrics() async {
-    if (!_biometricsAvailable || _authenticating) {
-      _showAuthMessage('Biometric unlock is not available on this device.');
+  bool _isBiometricCancellation(
+  Object error,
+) {
+  final errorText =
+      error.toString().toLowerCase();
+
+  return errorText.contains('usercancel') ||
+      errorText.contains('user_cancel') ||
+      errorText.contains('user canceled') ||
+      errorText.contains('user cancelled') ||
+      errorText.contains('canceled') ||
+      errorText.contains('cancelled') ||
+      errorText.contains('systemcancel') ||
+      errorText.contains('system_cancel');
+}
+
+Future<void> _handleBiometricFailure({
+  required String reason,
+  required String incidentType,
+  required String message,
+}) async {
+  final storedEmail =
+      await SessionService.getUserEmail();
+
+  debugPrint(
+    'BIOMETRIC INCIDENT ACCOUNT: $storedEmail',
+  );
+
+  // Biometric dialog eka close wela
+  // camera eka release wenna podi delay ekak.
+  await Future<void>.delayed(
+    const Duration(milliseconds: 1000),
+  );
+
+  await _recordLoginFailure(
+    reason: reason,
+    incidentType: incidentType,
+    attemptedEmailOverride: storedEmail,
+  );
+
+  if (!mounted) return;
+
+  _showAuthMessage(message);
+}
+
+ Future<void> _authenticateWithBiometrics() async {
+  if (!_biometricsAvailable ||
+      _authenticating) {
+    _showAuthMessage(
+      'Biometric unlock is not available on this device.',
+    );
+    return;
+  }
+
+  final hasSavedSession =
+      await SessionService.hasActiveSession();
+
+  final storedEmail =
+      await SessionService.getUserEmail();
+
+  if (!mounted) return;
+
+  if (!hasSavedSession ||
+      storedEmail == null ||
+      storedEmail.trim().isEmpty) {
+    _showAuthMessage(
+      'Sign in with your email and password once '
+      'before using biometric unlock.',
+    );
+    return;
+  }
+
+  setState(() {
+    _authenticating = true;
+  });
+
+  try {
+    bool authenticated;
+
+    try {
+      authenticated =
+          await _localAuth.authenticate(
+        localizedReason:
+            'Authenticate to unlock your encrypted vault.',
+        biometricOnly: true,
+        persistAcrossBackgrounding: true,
+      );
+    } catch (error) {
+      final errorText =
+          error.toString().toLowerCase();
+
+      debugPrint(
+        'BIOMETRIC AUTH ERROR: $error',
+      );
+
+      final isLockout =
+          errorText.contains('lockout') ||
+          errorText.contains('lockedout') ||
+          errorText.contains(
+            'permanentlylockedout',
+          );
+
+      final isCancelled =
+          errorText.contains('cancel') ||
+          errorText.contains('usercanceled') ||
+          errorText.contains('user_cancel');
+
+      await _handleBiometricFailure(
+        reason: isLockout
+            ? 'Biometric locked after too many attempts'
+            : isCancelled
+                ? 'Biometric authentication cancelled'
+                : 'Biometric authentication failed',
+        incidentType: isLockout
+            ? 'biometric_lockout'
+            : 'biometric_login_failure',
+        message: isLockout
+            ? 'Too many biometric attempts. '
+                'Try again later.'
+            : isCancelled
+                ? 'Biometric authentication was cancelled.'
+                : 'Biometric authentication failed.',
+      );
+
       return;
     }
 
-    setState(() => _authenticating = true);
+    if (!authenticated) {
+      await _handleBiometricFailure(
+        reason:
+            'Biometric authentication cancelled',
+        incidentType:
+            'biometric_login_failure',
+        message:
+            'Biometric authentication was cancelled.',
+      );
+
+      return;
+    }
 
     try {
-  final authenticated = await _localAuth.authenticate(
-    localizedReason: 'Authenticate to unlock your encrypted vault.',
-    biometricOnly: true,
-    persistAcrossBackgrounding: true,
-  );
+      final sessionResult =
+          await ApiService.getVaultDashboard();
 
-  if (!mounted) return;
+      if (!mounted) return;
 
-  if (authenticated) {
-    _openVault();
-  } else {
-    await _recordLoginFailure(
-      reason: 'Biometric authentication cancelled',
-      incidentType: 'biometric_login_failure',
-    );
+      if (sessionResult['status'] == 200) {
+        _openVault();
+        return;
+      }
 
-    if (!mounted) return;
+      if (sessionResult['status'] == 401) {
+        await SessionService.clearSession();
 
-    _showAuthMessage(
-      'Biometric authentication was cancelled.',
-    );
-  }
-} on PlatformException catch (error) {
-  final code = error.code.toLowerCase();
+        if (!mounted) return;
 
-  final isLockout =
-      code.contains('lockedout') ||
-      code.contains('permanentlylockedout') ||
-      code.contains('lockout');
+        _showAuthMessage(
+          'Your saved login session has expired. '
+          'Sign in with your email and password again.',
+        );
 
-  await _recordLoginFailure(
-    reason: isLockout
-        ? 'Biometric locked after too many attempts'
-        : 'Biometric authentication failed',
-    incidentType: isLockout
-        ? 'biometric_lockout'
-        : 'biometric_login_failure',
-  );
+        return;
+      }
 
-  if (!mounted) return;
+      _showAuthMessage(
+        'Could not verify the saved account. '
+        'Please try again.',
+      );
+    } catch (error) {
+      debugPrint(
+        'BIOMETRIC SESSION VALIDATION FAILED: '
+        '$error',
+      );
 
-  _showAuthMessage(
-    isLockout
-        ? 'Too many biometric attempts. Try again later.'
-        : 'Biometric authentication failed.',
-  );
-} catch (error) {
-  await _recordLoginFailure(
-    reason: 'Biometric authentication error',
-    incidentType: 'biometric_login_failure',
-  );
+      if (!mounted) return;
 
-  if (!mounted) return;
-
-  _showAuthMessage(
-    'Biometric authentication failed.',
-  );
-} finally {
-  if (mounted) {
-    setState(() => _authenticating = false);
+      _showAuthMessage(
+        'Could not verify the saved account. '
+        'Check your connection and try again.',
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() {
+        _authenticating = false;
+      });
+    }
   }
 }
-  }
-  Future<void> _recordLoginFailure({
+ Future<void> _recordLoginFailure({
   required String reason,
   required String incidentType,
+  String? attemptedEmailOverride,
 }) async {
-  try {
-    final imagePath =
-        await IntruderCameraService.captureFrontCameraPhoto();
+  final typedEmail = emailController.text
+      .trim()
+      .toLowerCase();
 
-    await ApiService.createSecurityIncident(
-      reason: reason,
-      incidentType: incidentType,
-      deviceInfo: 'Android mobile device',
-      attemptedEmail: emailController.text.trim().toLowerCase(),
-      imagePath: imagePath,
+  final storedEmail =
+      await SessionService.getUserEmail();
+
+  final overrideEmail =
+      attemptedEmailOverride
+          ?.trim()
+          .toLowerCase();
+
+  final attemptedEmail =
+      overrideEmail != null &&
+              overrideEmail.isNotEmpty
+          ? overrideEmail
+          : typedEmail.isNotEmpty
+              ? typedEmail
+              : storedEmail
+                  ?.trim()
+                  .toLowerCase();
+
+  if (attemptedEmail == null ||
+      attemptedEmail.isEmpty) {
+    debugPrint(
+      'SECURITY INCIDENT FAILED: '
+      'No account email available',
+    );
+    return;
+  }
+
+  debugPrint(
+    'SECURITY INCIDENT EMAIL: '
+    '$attemptedEmail',
+  );
+
+  String? imagePath;
+
+  try {
+    imagePath =
+        await IntruderCameraService
+            .captureFrontCameraPhoto()
+            .timeout(
+      const Duration(seconds: 12),
+    );
+
+    debugPrint(
+      'INTRUDER PHOTO CAPTURED: '
+      '$imagePath',
     );
   } catch (error) {
-    debugPrint('Security incident recording failed: $error');
+    debugPrint(
+      'INTRUDER PHOTO CAPTURE FAILED: '
+      '$error',
+    );
+  }
+
+  try {
+    final result =
+        await ApiService.createSecurityIncident(
+      reason: reason,
+      incidentType: incidentType,
+      deviceInfo:
+          'Android mobile device',
+      attemptedEmail: attemptedEmail,
+      imagePath: imagePath,
+    );
+
+    debugPrint(
+      'SECURITY INCIDENT STATUS: '
+      '${result['status']}',
+    );
+
+    debugPrint(
+      'SECURITY INCIDENT BODY: '
+      '${result['body']}',
+    );
+  } catch (error) {
+    debugPrint(
+      'SECURITY INCIDENT RECORDING FAILED: '
+      '$error',
+    );
   }
 }
-
   void _openVault() {
     FocusScope.of(context).unfocus();
     Navigator.of(context).pushReplacement(

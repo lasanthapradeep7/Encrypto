@@ -25,6 +25,7 @@ class _EncryptionShellState extends State<EncryptionShell> {
   int _workflowReturnIndex = 1;
   EncryptionMode _workflowMode = EncryptionMode.encrypt;
   int _workflowResetToken = 0;
+  int _vaultRefreshToken = 0;
 
   bool _checkingSecurityAlert = false;
 
@@ -189,11 +190,15 @@ Future<void> _showSecurityAlert({
   );
 }
 
-  void _selectTab(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
+ void _selectTab(int index) {
+  setState(() {
+    if (index == 0) {
+      _vaultRefreshToken++;
+    }
+
+    _selectedIndex = index;
+  });
+}
 
   void _openWorkflow(EncryptionMode mode, {int returnIndex = 1}) {
     setState(() {
@@ -210,12 +215,9 @@ Future<void> _showSecurityAlert({
       _selectedIndex = index;
     });
   }
-
-  void _closeUtilityPage() {
-    setState(() {
-      _selectedIndex = _utilityReturnIndex;
-    });
-  }
+void _closeUtilityPage() {
+  _selectTab(_utilityReturnIndex);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -233,8 +235,13 @@ Future<void> _showSecurityAlert({
                     index: _selectedIndex,
                     children: [
                       VaultHomePage(
+                        key: ValueKey<int>(
+                          _vaultRefreshToken,
+                        ),
                         onOpenWorkflow: () =>
-                            _openWorkflow(EncryptionMode.encrypt),
+                            _openWorkflow(
+                              EncryptionMode.encrypt,
+                            ),
                         onOpenSteganographyWorkflow: () =>
                             _openWorkflow(EncryptionMode.steganography),
                         onOpenProfile: () => _selectTab(3),
