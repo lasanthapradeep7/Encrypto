@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 
+import 'package:encrypto/core/theme/app_theme.dart';
+import 'package:encrypto/features/encryption/presentation/pages/encryption_shell.dart';
 import 'package:encrypto/features/auth/presentation/pages/signup_page.dart';
+import 'package:encrypto/shared/widgets/auth/auth_layout.dart';
+import 'package:encrypto/services/api_service.dart';
+import 'package:encrypto/services/intruder_camera_service.dart';
+import 'package:encrypto/services/session_service.dart';
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -9,190 +17,686 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
+
+  final TextEditingController emailController =
+    TextEditingController();
+
+  final TextEditingController passwordController =
+    TextEditingController();
+
+  final _formKey = GlobalKey<FormState>();
+  final _localAuth = LocalAuthentication();
+
+  
+
   bool _obscurePassword = true;
+  bool _rememberMe = true;
+  bool _biometricsAvailable = false;
+  bool _authenticating = false;
+
+  late final AnimationController _panelController;
+  late final Animation<Offset> _panelSlide;
+  late final Animation<double> _panelFade;
+
+  @override
+  void initState() {
+    super.initState();
+    SessionService.startSecurityWindow();
+    _panelController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..forward();
+
+    _panelSlide = Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _panelController, curve: Curves.easeOutCubic),
+        );
+
+    _panelFade = CurvedAnimation(
+      parent: _panelController,
+      curve: Curves.easeOut,
+    );
+
+    _loadBiometricStatus();
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    _panelController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadBiometricStatus() async {
+    try {
+      final biometricsAvailable = await _localAuth.canCheckBiometrics;
+      final availableBiometrics = await _localAuth.getAvailableBiometrics();
+      final deviceSupported = await _localAuth.isDeviceSupported();
+
+      if (!mounted) return;
+      setState(() {
+        _biometricsAvailable =
+            biometricsAvailable &&
+            deviceSupported &&
+            availableBiometrics.isNotEmpty;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _biometricsAvailable = false);
+    }
+  }
+
+Future<void> _handleBiometricFailure({
+  required String reason,
+  required String incidentType,
+  required String message,
+}) async {
+  final storedEmail =
+      await SessionService.getUserEmail();
+
+  debugPrint(
+    'BIOMETRIC INCIDENT ACCOUNT: $storedEmail',
+  );
+
+  // Biometric dialog eka close wela
+  // camera eka release wenna podi delay ekak.
+  await Future<void>.delayed(
+    const Duration(milliseconds: 1000),
+  );
+
+  await _recordLoginFailure(
+    reason: reason,
+    incidentType: incidentType,
+    attemptedEmailOverride: storedEmail,
+  );
+
+  if (!mounted) return;
+
+  _showAuthMessage(message);
+}
+
+ Future<void> _authenticateWithBiometrics() async {
+  if (!_biometricsAvailable ||
+      _authenticating) {
+    _showAuthMessage(
+      'Biometric unlock is not available on this device.',
+    );
+    return;
+  }
+
+  final hasSavedSession =
+      await SessionService.hasActiveSession();
+
+  final storedEmail =
+      await SessionService.getUserEmail();
+
+  if (!mounted) return;
+
+  if (!hasSavedSession ||
+      storedEmail == null ||
+      storedEmail.trim().isEmpty) {
+    _showAuthMessage(
+      'Sign in with your email and password once '
+      'before using biometric unlock.',
+    );
+    return;
+  }
+
+  setState(() {
+    _authenticating = true;
+  });
+
+  try {
+    bool authenticated;
+
+    try {
+      authenticated =
+          await _localAuth.authenticate(
+        localizedReason:
+            'Authenticate to unlock your encrypted vault.',
+        biometricOnly: true,
+        persistAcrossBackgrounding: true,
+      );
+    } catch (error) {
+      final errorText =
+          error.toString().toLowerCase();
+
+      debugPrint(
+        'BIOMETRIC AUTH ERROR: $error',
+      );
+
+      final isLockout =
+          errorText.contains('lockout') ||
+          errorText.contains('lockedout') ||
+          errorText.contains(
+            'permanentlylockedout',
+          );
+
+      final isCancelled =
+          errorText.contains('cancel') ||
+          errorText.contains('usercanceled') ||
+          errorText.contains('user_cancel');
+
+      await _handleBiometricFailure(
+        reason: isLockout
+            ? 'Biometric locked after too many attempts'
+            : isCancelled
+                ? 'Biometric authentication cancelled'
+                : 'Biometric authentication failed',
+        incidentType: isLockout
+            ? 'biometric_lockout'
+            : 'biometric_login_failure',
+        message: isLockout
+            ? 'Too many biometric attempts. '
+                'Try again later.'
+            : isCancelled
+                ? 'Biometric authentication was cancelled.'
+                : 'Biometric authentication failed.',
+      );
+
+      return;
+    }
+
+    if (!authenticated) {
+      await _handleBiometricFailure(
+        reason:
+            'Biometric authentication cancelled',
+        incidentType:
+            'biometric_login_failure',
+        message:
+            'Biometric authentication was cancelled.',
+      );
+
+      return;
+    }
+
+    try {
+      final sessionResult =
+          await ApiService.getVaultDashboard();
+
+      if (!mounted) return;
+
+      if (sessionResult['status'] == 200) {
+        _openVault();
+        return;
+      }
+
+      if (sessionResult['status'] == 401) {
+        await SessionService.clearSession();
+
+        if (!mounted) return;
+
+        _showAuthMessage(
+          'Your saved login session has expired. '
+          'Sign in with your email and password again.',
+        );
+
+        return;
+      }
+
+      _showAuthMessage(
+        'Could not verify the saved account. '
+        'Please try again.',
+      );
+    } catch (error) {
+      debugPrint(
+        'BIOMETRIC SESSION VALIDATION FAILED: '
+        '$error',
+      );
+
+      if (!mounted) return;
+
+      _showAuthMessage(
+        'Could not verify the saved account. '
+        'Check your connection and try again.',
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() {
+        _authenticating = false;
+      });
+    }
+  }
+}
+ Future<void> _recordLoginFailure({
+  required String reason,
+  required String incidentType,
+  String? attemptedEmailOverride,
+}) async {
+  final typedEmail = emailController.text
+      .trim()
+      .toLowerCase();
+
+  final storedEmail =
+      await SessionService.getUserEmail();
+
+  final overrideEmail =
+      attemptedEmailOverride
+          ?.trim()
+          .toLowerCase();
+
+  final attemptedEmail =
+      overrideEmail != null &&
+              overrideEmail.isNotEmpty
+          ? overrideEmail
+          : typedEmail.isNotEmpty
+              ? typedEmail
+              : storedEmail
+                  ?.trim()
+                  .toLowerCase();
+
+  if (attemptedEmail == null ||
+      attemptedEmail.isEmpty) {
+    debugPrint(
+      'SECURITY INCIDENT FAILED: '
+      'No account email available',
+    );
+    return;
+  }
+
+  debugPrint(
+    'SECURITY INCIDENT EMAIL: '
+    '$attemptedEmail',
+  );
+
+  String? imagePath;
+
+  try {
+    imagePath =
+        await IntruderCameraService
+            .captureFrontCameraPhoto()
+            .timeout(
+      const Duration(seconds: 12),
+    );
+
+    debugPrint(
+      'INTRUDER PHOTO CAPTURED: '
+      '$imagePath',
+    );
+  } catch (error) {
+    debugPrint(
+      'INTRUDER PHOTO CAPTURE FAILED: '
+      '$error',
+    );
+  }
+
+  try {
+    final result =
+        await ApiService.createSecurityIncident(
+      reason: reason,
+      incidentType: incidentType,
+      deviceInfo:
+          'Android mobile device',
+      attemptedEmail: attemptedEmail,
+      imagePath: imagePath,
+    );
+
+    debugPrint(
+      'SECURITY INCIDENT STATUS: '
+      '${result['status']}',
+    );
+
+    debugPrint(
+      'SECURITY INCIDENT BODY: '
+      '${result['body']}',
+    );
+  } catch (error) {
+    debugPrint(
+      'SECURITY INCIDENT RECORDING FAILED: '
+      '$error',
+    );
+  }
+}
+  void _openVault() {
+    FocusScope.of(context).unfocus();
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder<void>(
+        pageBuilder: (_, _, _) => const EncryptionShell(),
+        transitionsBuilder: (_, anim, _, child) =>
+            FadeTransition(opacity: anim, child: child),
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+    );
+  }
+
+  void _showAuthMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF03050B),
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: AuthBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight:
+                    MediaQuery.sizeOf(context).height -
+                    MediaQuery.paddingOf(context).vertical,
+              ),
+              child: Column(
+                children: [
+                  const AuthTitleBlock(
+                    kicker: 'Welcome back',
+                    title: 'Sign in',
+                    subtitle:
+                        'Access your encrypted vault with biometric shortcuts or your password.',
+                  ),
+                  FadeTransition(
+                    opacity: _panelFade,
+                    child: SlideTransition(
+                      position: _panelSlide,
+                      child: AuthPanel(
+                        child: Form(
+                          key: _formKey,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Quick access label
+                              Row(
+                                children: [
+                                  ShaderMask(
+                                    blendMode: BlendMode.srcIn,
+                                    shaderCallback: (b) => AppGradients
+                                        .accentHorizontal
+                                        .createShader(b),
+                                    child: const Icon(
+                                      Icons.bolt_rounded,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Quick access',
+                                    style: textTheme.headlineMedium,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _BiometricOption(
+                                      icon: Icons.face_unlock_outlined,
+                                      label: 'Face ID',
+                                      enabled:
+                                          _biometricsAvailable &&
+                                          !_authenticating,
+                                      onTap: _authenticateWithBiometrics,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _BiometricOption(
+                                      icon: Icons.fingerprint,
+                                      label: 'Fingerprint',
+                                      enabled:
+                                          _biometricsAvailable &&
+                                          !_authenticating,
+                                      onTap: _authenticateWithBiometrics,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 22),
+                              // Gradient divider
+                              _GradientDivider(
+                                label: 'or sign in with credentials',
+                              ),
+                              const SizedBox(height: 18),
+                              AuthInputField(
+                                controller: emailController,
+                                hint: 'Email or username',
+                                prefix: Icons.person_outline_rounded,
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [
+                                  AutofillHints.username,
+                                  AutofillHints.email,
+                                ],
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Enter your email or username';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              AuthInputField(
+                                controller: passwordController,
+                                hint: 'Password',
+                                prefix: Icons.lock_outline_rounded,
+                                obscureText: _obscurePassword,
+                                textInputAction: TextInputAction.done,
+                                autofillHints: const [AutofillHints.password],
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Enter your password';
+                                  }
+                                  if (value.length < 6) {
+                                    return 'Password must be at least 6 characters';
+                                  }
+                                  return null;
+                                },
+                                suffix: IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Transform.scale(
+                                    scale: 0.92,
+                                    child: Checkbox(
+                                      value: _rememberMe,
+                                      onChanged: (value) {
+                                        if (value == null) return;
+                                        setState(() => _rememberMe = value);
+                                      },
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      'Keep me signed in on this device',
+                                      style: textTheme.bodyMedium,
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {},
+                                    child: const Text('Forgot?'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              GradientButton(
+                                label: 'Log in securely',
+                                icon: Icons.lock_open_rounded,
+                                onPressed: () async {
+                                  if (!(_formKey.currentState?.validate() ??
+                                      false)) {
+                                    return;
+                                  }
+
+                                  final result = await ApiService.login(
+                                    email: emailController.text.trim(),
+                                    password: passwordController.text,
+                                  );
+
+                                  debugPrint('LOGIN STATUS: ${result["status"]}');
+                                  debugPrint('LOGIN BODY: ${result["body"]}');
+
+                                  if (!context.mounted) return;
+
+                                  if (result["status"] == 200) {
+                                    final body = result["body"] as Map<String, dynamic>;
+                                    final accessToken = body["access_token"]?.toString();
+
+                                    if (accessToken == null || accessToken.isEmpty) {
+                                      _showAuthMessage('Login token was not received.');
+                                      return;
+                                    }
+
+                                    await SessionService.saveLoginSession(
+                                      accessToken: accessToken,
+                                      email: emailController.text.trim(),
+                                    );
+
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text("Login Success"),
+                                      ),
+                                    );
+
+                                    _openVault();
+                                  } else {
+                                    await _recordLoginFailure(
+                                      reason: 'Invalid email or password entered',
+                                      incidentType: 'credential_login_failure',
+                                    );
+
+                                    if (!context.mounted) return;
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          result["body"]["detail"].toString(),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('New here?', style: textTheme.bodyLarge),
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => const SignUpPage(),
+                                      ),
+                                    ),
+                                    child: const Text('Create account'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Gradient-border biometric tile
+// ---------------------------------------------------------------------------
+class _BiometricOption extends StatefulWidget {
+  const _BiometricOption({
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  State<_BiometricOption> createState() => _BiometricOptionState();
+}
+
+class _BiometricOptionState extends State<_BiometricOption> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final enabled = widget.enabled;
+
+    return GestureDetector(
+      onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
+      onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
+      onTapCancel: enabled ? () => setState(() => _pressed = false) : null,
+      onTap: enabled ? widget.onTap : null,
+      child: AnimatedScale(
+        scale: _pressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 100,
+          decoration: BoxDecoration(
+            color: !enabled
+                ? AppColors.inputFill.withValues(alpha: 0.56)
+                : _pressed
+                ? AppColors.accentSoft.withValues(alpha: 0.5)
+                : AppColors.inputFill,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: _pressed ? AppColors.accent : AppColors.border,
+              width: _pressed ? 1.8 : 1.2,
+            ),
+            boxShadow: _pressed
+                ? [
+                    BoxShadow(
+                      color: AppColors.accent.withValues(alpha: 0.16),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : [],
+          ),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 36),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 26),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Hello !',
-                    style: TextStyle(
-                      color: Color(0xFFF5F7FA),
-                      fontSize: 36,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+              ShaderMask(
+                blendMode: BlendMode.srcIn,
+                shaderCallback: (b) =>
+                    AppGradients.accentHorizontal.createShader(b),
+                child: Icon(widget.icon, size: 32),
               ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(26, 6, 26, 26),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Welcome to Encrypto',
-                    style: TextStyle(
-                      color: Color(0xFFF5F7FA),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF1F1F1),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(34)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 24, 22, 28),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Login',
-                        style: TextStyle(
-                          color: Color(0xFF171A1F),
-                          fontSize: 36,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: const [
-                          Expanded(
-                            child: _BiometricOption(
-                              icon: Icons.face_retouching_natural_outlined,
-                              label: 'Face recognition',
-                            ),
-                          ),
-                          SizedBox(width: 14),
-                          Expanded(
-                            child: _BiometricOption(
-                              icon: Icons.fingerprint,
-                              label: 'Fingerprint scan',
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 22),
-                      const Row(
-                        children: [
-                          Expanded(child: Divider(color: Color(0xFFB7B7B7))),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              'Or Login with',
-                              style: TextStyle(
-                                color: Color(0xFF55595E),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          Expanded(child: Divider(color: Color(0xFFB7B7B7))),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      const _AppInputField(
-                        hint: 'Username',
-                        prefix: Icons.person_outline,
-                      ),
-                      const SizedBox(height: 14),
-                      _AppInputField(
-                        hint: 'Password',
-                        prefix: Icons.lock_outline,
-                        obscureText: _obscurePassword,
-                        suffix: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: const Color(0xFF4C4C4C),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          'Forgot Password',
-                          style: TextStyle(
-                            color: Color(0xFF3A3A3A),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF090B11),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                          ),
-                          child: const Text(
-                            'Log In',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Don\'t have an account?',
-                            style: TextStyle(
-                              color: Color(0xFF1B1B1B),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const SignUpPage(),
-                              ),
-                            ),
-                            child: const Text(
-                              'Sign up',
-                              style: TextStyle(
-                                color: Color(0xFF0E82FF),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              const SizedBox(height: 7),
+              Text(
+                widget.label,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: enabled
+                      ? AppColors.textPrimary
+                      : AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -203,83 +707,53 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-class _BiometricOption extends StatelessWidget {
-  const _BiometricOption({required this.icon, required this.label});
+// ---------------------------------------------------------------------------
+// Gradient-fade divider
+// ---------------------------------------------------------------------------
+class _GradientDivider extends StatelessWidget {
+  const _GradientDivider({required this.label});
 
-  final IconData icon;
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 116,
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF4A4A4A)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 44, color: const Color(0xFF171A1F)),
-          const SizedBox(height: 8),
-          Text(
+    return Row(
+      children: [
+        Expanded(
+          child: ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [
+                Colors.transparent,
+                AppColors.border.withValues(alpha: 0.8),
+              ],
+            ).createShader(bounds),
+            blendMode: BlendMode.dstIn,
+            child: Container(height: 1, color: AppColors.border),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
             label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF25282E),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AppInputField extends StatelessWidget {
-  const _AppInputField({
-    required this.hint,
-    required this.prefix,
-    this.obscureText = false,
-    this.suffix,
-  });
-
-  final String hint;
-  final IconData prefix;
-  final bool obscureText;
-  final Widget? suffix;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        isDense: true,
-        filled: true,
-        fillColor: const Color(0xFFF1F1F1),
-        hintText: hint,
-        hintStyle: const TextStyle(
-          color: Color(0xFF1F1F1F),
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
+        Expanded(
+          child: ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [
+                AppColors.border.withValues(alpha: 0.8),
+                Colors.transparent,
+              ],
+            ).createShader(bounds),
+            blendMode: BlendMode.dstIn,
+            child: Container(height: 1, color: AppColors.border),
+          ),
         ),
-        prefixIcon: Icon(prefix, color: const Color(0xFF414141), size: 22),
-        suffixIcon: suffix,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
-          borderSide: const BorderSide(color: Color(0xFF6A6A6A), width: 1.2),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
-          borderSide: const BorderSide(color: Color(0xFF21262F), width: 1.3),
-        ),
-      ),
+      ],
     );
   }
 }

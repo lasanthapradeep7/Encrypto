@@ -1,30 +1,52 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:encrypto/main.dart';
+import 'package:encrypto/core/theme/app_theme.dart';
+import 'package:encrypto/features/encryption/presentation/pages/encryption_shell.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const EncryptoApp());
+  Widget buildShell() {
+    return MaterialApp(theme: AppTheme.light, home: const EncryptionShell());
+  }
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('bottom bar opens profile screen and returns to vault', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(buildShell());
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('Secure Vault'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('User Profile'), findsOneWidget);
+    expect(find.text('Edit Profile'), findsOneWidget);
+    expect(find.byTooltip('Go back'), findsNothing);
+
+    await tester.tap(find.text('Vault'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Secure Vault'), findsOneWidget);
+    expect(find.text('Vault'), findsOneWidget);
+  });
+
+  testWidgets('top bar opens notifications and settings screens', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(buildShell());
+
+    await tester.tap(find.byTooltip('Notifications'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Notifications'), findsOneWidget);
+    expect(find.text('Mark read'), findsWidgets);
+
+    await tester.tap(find.byTooltip('Go back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Change password'), findsOneWidget);
   });
 }

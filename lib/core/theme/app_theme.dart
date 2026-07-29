@@ -1,0 +1,283 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class AppColors {
+  AppColors._();
+
+  // Core backgrounds
+  static const Color backgroundStart = Color(0xFF060B18);
+  static const Color backgroundEnd = Color(0xFF0D1830);
+
+  // Auth panel
+  static const Color panel = Color(0xFFFAFBFF);
+
+  // Text
+  static const Color textPrimary = Color(0xFF151B2C);
+  static const Color textSecondary = Color(0xFF5A637A);
+
+  // Input
+  static const Color inputFill = Color(0xFFF0F4FD);
+  static const Color border = Color(0xFFD4DCF0);
+
+  // Accent family
+  static const Color accent = Color(0xFF3B7BFF);
+  static const Color accentMid = Color(0xFF5B5BFF);
+  static const Color accentDark = Color(0xFF1947C8);
+  static const Color accentSoft = Color(0xFFDCE6FF);
+  static const Color accentGlow = Color(0x552F6BFF);
+  static const Color onAccent = Colors.white;
+
+  // Semantic
+  static const Color success = Color(0xFF22C55E);
+  static const Color successSoft = Color(0xFF16A34A);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color warningSoft = Color(0xFFD97706);
+  static const Color error = Color(0xFFEF4444);
+
+  // Dark surface tokens
+  static const Color surfaceCard = Color(0x12FFFFFF);
+  static const Color surfaceCardBorder = Color(0x1FFFFFFF);
+  static const Color surfaceHighlight = Color(0x0AFFFFFF);
+
+  // Overlay
+  static const Color overlay = Color(0x99000000);
+}
+
+class AppGradients {
+  AppGradients._();
+
+  static const LinearGradient accent = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF72BAFF), Color(0xFF3B7BFF), Color(0xFF1947C8)],
+  );
+
+  static const LinearGradient accentHorizontal = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [Color(0xFF3B7BFF), Color(0xFF7C3AFF)],
+  );
+
+  static const LinearGradient background = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [AppColors.backgroundStart, AppColors.backgroundEnd],
+  );
+
+  static const LinearGradient card = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0x18FFFFFF), Color(0x08FFFFFF)],
+  );
+
+  static const LinearGradient success = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF34D399), Color(0xFF059669)],
+  );
+
+  static const LinearGradient processing = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF60A5FA), Color(0xFF3B82F6), Color(0xFF2563EB)],
+  );
+
+  static const LinearGradient brand = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF93C5FD), Color(0xFF3B7BFF), Color(0xFF1E3A8A)],
+  );
+}
+
+class AppShadows {
+  AppShadows._();
+
+  static const List<BoxShadow> accent = [
+    BoxShadow(
+      color: Color(0x663B7BFF),
+      blurRadius: 24,
+      spreadRadius: -4,
+      offset: Offset(0, 8),
+    ),
+  ];
+
+  static const List<BoxShadow> accentGlow = [
+    BoxShadow(
+      color: Color(0x883B7BFF),
+      blurRadius: 40,
+      spreadRadius: -8,
+      offset: Offset(0, 16),
+    ),
+  ];
+
+  static const List<BoxShadow> card = [
+    BoxShadow(
+      color: Color(0x1A000000),
+      blurRadius: 16,
+      offset: Offset(0, 4),
+    ),
+  ];
+
+  static const List<BoxShadow> panel = [
+    BoxShadow(
+      color: Color(0x26000000),
+      blurRadius: 32,
+      offset: Offset(0, -10),
+    ),
+  ];
+
+  static const List<BoxShadow> navCenter = [
+    BoxShadow(
+      color: Color(0x993B7BFF),
+      blurRadius: 28,
+      spreadRadius: -4,
+      offset: Offset(0, 8),
+    ),
+  ];
+}
+
+class AppTheme {
+  AppTheme._();
+
+  static ThemeData get light {
+    final textTheme = GoogleFonts.spaceGroteskTextTheme();
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.accent,
+        brightness: Brightness.light,
+      ).copyWith(
+        primary: AppColors.accent,
+        onPrimary: AppColors.onAccent,
+        surface: AppColors.panel,
+        error: AppColors.error,
+      ),
+      scaffoldBackgroundColor: AppColors.backgroundStart,
+      textTheme: textTheme.copyWith(
+        displayLarge: textTheme.displayLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
+          letterSpacing: -1.2,
+        ),
+        headlineLarge: textTheme.headlineLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+          letterSpacing: -0.8,
+        ),
+        headlineMedium: textTheme.headlineMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+          letterSpacing: -0.4,
+        ),
+        titleLarge: textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
+        ),
+        titleMedium: textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.1,
+        ),
+        bodyLarge: textTheme.bodyLarge?.copyWith(
+          color: AppColors.textPrimary,
+          height: 1.5,
+        ),
+        bodyMedium: textTheme.bodyMedium?.copyWith(
+          color: AppColors.textSecondary,
+          height: 1.5,
+        ),
+        labelLarge: textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+        ),
+        labelSmall: textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.0,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.inputFill,
+        floatingLabelBehavior: FloatingLabelBehavior.never,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 16,
+        ),
+        hintStyle: textTheme.bodyMedium?.copyWith(
+          color: AppColors.textSecondary.withValues(alpha: 0.8),
+          fontWeight: FontWeight.w500,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.border, width: 1.2),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.accent, width: 2.0),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: AppColors.error, width: 1.4),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: AppColors.error, width: 2.0),
+        ),
+        errorStyle: textTheme.bodySmall?.copyWith(color: AppColors.error),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size.fromHeight(52),
+          backgroundColor: AppColors.accent,
+          foregroundColor: AppColors.onAccent,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          disabledBackgroundColor: AppColors.border,
+          disabledForegroundColor: AppColors.textSecondary,
+          textStyle: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.1,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(52),
+          foregroundColor: AppColors.onAccent,
+          side: const BorderSide(color: Colors.white, width: 1.4),
+          textStyle: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.accent,
+          textStyle: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        ),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        side: const BorderSide(color: AppColors.border, width: 1.4),
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppColors.accent;
+          }
+          return Colors.white;
+        }),
+        checkColor: const WidgetStatePropertyAll(Colors.white),
+      ),
+    );
+  }
+}
