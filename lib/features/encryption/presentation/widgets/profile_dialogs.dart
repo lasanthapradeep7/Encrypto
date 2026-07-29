@@ -122,8 +122,9 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
               validator: (value) {
                 final name = value?.trim() ?? '';
                 if (name.isEmpty) return 'Enter your full name';
-                if (name.length < 2)
+                if (name.length < 2) {
                   return 'Name must be at least 2 characters';
+                }
                 return null;
               },
             ),

@@ -23,6 +23,7 @@ class _SignUpPageState extends State<SignUpPage>
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _agreeTerms = false;
+  bool _isSubmitting = false;
   double _passwordStrength = 0.0;
 
   late final AnimationController _panelController;
@@ -53,6 +54,7 @@ class _SignUpPageState extends State<SignUpPage>
     _panelController.dispose();
 
     _passwordController.dispose();
+    _confirmController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -77,6 +79,61 @@ class _SignUpPageState extends State<SignUpPage>
       strength += 0.20;
     }
     return strength.clamp(0.0, 1.0);
+  }
+
+  Future<void> _submitRegistration() async {
+    if (_isSubmitting || !(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    setState(() => _isSubmitting = true);
+
+    try {
+      final result = await ApiService.register(
+        fullName: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (!mounted) return;
+
+      final status = result["status"] as int?;
+      if (status != null && status >= 200 && status < 300) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registration successful')),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+        );
+        return;
+      }
+
+      final body = result["body"];
+      final message = body is Map ? body["detail"]?.toString() : null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            message ?? 'Unable to create your account. Please try again.',
+          ),
+        ),
+      );
+    } catch (error) {
+      debugPrint('REGISTRATION REQUEST FAILED: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unable to connect. Check your connection and try again.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -324,56 +381,10 @@ class _SignUpPageState extends State<SignUpPage>
                               GradientButton(
                                 label: 'Create secure account',
                                 icon: Icons.person_add_alt_1_rounded,
+                                isLoading: _isSubmitting,
+                                loadingLabel: 'Creating account...',
                                 onPressed: _agreeTerms
-                                    ? () async {
-                                        if (!(_formKey.currentState
-                                                ?.validate() ??
-                                            false)) {
-                                          return;
-                                        }
-
-                                        final result =
-                                            await ApiService.register(
-                                              fullName: _nameController.text
-                                                  .trim(),
-                                              email: _emailController.text
-                                                  .trim(),
-                                              password:
-                                                  _passwordController.text,
-                                            );
-
-                                        if (!context.mounted) return;
-
-                                        if (result["status"] == 200) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                "Registration Success",
-                                              ),
-                                            ),
-                                          );
-
-                                          Navigator.pushReplacement(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => const LoginPage(),
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                result["body"]["detail"]
-                                                    .toString(),
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      }
+                                    ? _submitRegistration
                                     : null,
                               ),
                               const SizedBox(height: 16),

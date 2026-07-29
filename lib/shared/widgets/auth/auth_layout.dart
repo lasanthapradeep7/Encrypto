@@ -79,8 +79,9 @@ class AuthPanel extends StatelessWidget {
               width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.97),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(36)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(36),
+                ),
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.5),
                   width: 1.0,
@@ -240,19 +241,23 @@ class _AuthInputFieldState extends State<AuthInputField> {
         validator: widget.validator,
         onChanged: widget.onChanged,
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w500,
-            ),
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w500,
+        ),
         decoration: InputDecoration(
           hintText: widget.hint,
           prefixIcon: ShaderMask(
             blendMode: BlendMode.srcIn,
-            shaderCallback: (bounds) => (_isFocused
-                    ? AppGradients.accentHorizontal
-                    : const LinearGradient(
-                        colors: [AppColors.textSecondary, AppColors.textSecondary],
-                      ))
-                .createShader(bounds),
+            shaderCallback: (bounds) =>
+                (_isFocused
+                        ? AppGradients.accentHorizontal
+                        : const LinearGradient(
+                            colors: [
+                              AppColors.textSecondary,
+                              AppColors.textSecondary,
+                            ],
+                          ))
+                    .createShader(bounds),
             child: Icon(widget.prefix, size: 20),
           ),
           suffixIcon: widget.suffix,
@@ -271,15 +276,21 @@ class GradientButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.isLoading = false,
+    this.loadingLabel,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
+  final bool isLoading;
+  final String? loadingLabel;
 
   @override
   Widget build(BuildContext context) {
     final disabled = onPressed == null;
+    final effectiveOnPressed = isLoading ? null : onPressed;
+
     return SizedBox(
       height: 54,
       width: double.infinity,
@@ -294,26 +305,49 @@ class GradientButton extends StatelessWidget {
           boxShadow: disabled ? [] : AppShadows.accent,
         ),
         child: ElevatedButton(
-          onPressed: onPressed,
+          onPressed: effectiveOnPressed,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
+            disabledBackgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
-            foregroundColor:
-                disabled ? AppColors.textSecondary : Colors.white,
+            foregroundColor: disabled ? AppColors.textSecondary : Colors.white,
+            disabledForegroundColor: disabled
+                ? AppColors.textSecondary
+                : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
           ),
-          child: icon != null
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, size: 20),
-                    const SizedBox(width: 8),
-                    Text(label),
-                  ],
-                )
-              : Text(label),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: isLoading
+                ? Row(
+                    key: const ValueKey('loading'),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(loadingLabel ?? 'Please wait...'),
+                    ],
+                  )
+                : Row(
+                    key: const ValueKey('idle'),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (icon != null) ...[
+                        Icon(icon, size: 20),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(label),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
@@ -355,9 +389,7 @@ class _DotGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: CustomPaint(painter: _DotGridPainter()),
-    );
+    return IgnorePointer(child: CustomPaint(painter: _DotGridPainter()));
   }
 }
 
