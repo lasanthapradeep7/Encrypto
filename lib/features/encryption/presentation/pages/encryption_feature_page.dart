@@ -219,9 +219,9 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
     try {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('AI analyzing selected file...')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('AI analyzing selected file...')));
 
       final uploadResult = await ApiService.uploadFile(selectedPath);
 
@@ -289,7 +289,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
     if (_activeMode == EncryptionMode.encrypt) {
       if (_selectedFilePath == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a file to encrypt.')),
+          SnackBar(content: Text('Please select a file to encrypt.')),
         );
         return;
       }
@@ -315,7 +315,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
         }
         if (password.length < 6) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
                 'Hybrid password must contain at least 6 characters.',
               ),
@@ -326,7 +326,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
 
         if (password != confirmPassword) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Hybrid passwords do not match.')),
+            SnackBar(content: Text('Hybrid passwords do not match.')),
           );
           return;
         }
@@ -341,7 +341,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
 
         if (!biometricOk) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Biometric authentication failed.')),
+            SnackBar(content: Text('Biometric authentication failed.')),
           );
           return;
         }
@@ -349,7 +349,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
     } else if (_activeMode == EncryptionMode.decrypt) {
       if (_selectedFilePath == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select an encrypted file.')),
+          SnackBar(content: Text('Please select an encrypted file.')),
         );
         return;
       }
@@ -362,7 +362,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
           if (!mounted) return;
 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Biometric authentication failed.')),
+            SnackBar(content: Text('Biometric authentication failed.')),
           );
           return;
         }
@@ -371,9 +371,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
       if (_protectionMethod == ProtectionMethod.biometric) {
         if (_selectedFileName == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Please select encrypted file first.'),
-            ),
+            SnackBar(content: Text('Please select encrypted file first.')),
           );
           return;
         }
@@ -386,9 +384,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
 
         if (savedKey == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No biometric key found for this file.'),
-            ),
+            SnackBar(content: Text('No biometric key found for this file.')),
           );
           return;
         }
@@ -414,7 +410,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
       if (_stegoExtractImagePath == null &&
           (_stegoCoverImagePath == null || _stegoFilePath == null)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
               'Please select either stego cover + hidden file or a stego image to extract.',
             ),
@@ -584,7 +580,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
         _currentProgressLabel = 'Finalizing...';
       });
 
-      await Future<void>.delayed(const Duration(milliseconds: 500));
+      await Future<void>.delayed(Duration(milliseconds: 500));
 
       setState(() {
         _step3State = _StepState.done;
@@ -612,7 +608,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
       if (_activeMode == EncryptionMode.steganography) {
         if (_stegoDownloadFileName == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No steganography file to download.')),
+            SnackBar(content: Text('No steganography file to download.')),
           );
           return;
         }
@@ -622,7 +618,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
       } else {
         if (_processedFileId == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No processed file to download.')),
+            SnackBar(content: Text('No processed file to download.')),
           );
           return;
         }
@@ -654,7 +650,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
       if (savedPath == null) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Save cancelled')));
+        ).showSnackBar(SnackBar(content: Text('Save cancelled')));
         return;
       }
 
@@ -694,18 +690,17 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
         EncryptoTopBar(
           showBackButton: true,
           onBackPressed: widget.onBackPressed,
-          onProfilePressed: widget.onOpenProfile,
           onNotificationsPressed: widget.onOpenNotifications,
           onSettingsPressed: widget.onOpenSettings,
         ),
         Expanded(
           child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
+            duration: Duration(milliseconds: 300),
             transitionBuilder: (child, animation) => FadeTransition(
               opacity: animation,
               child: SlideTransition(
                 position: Tween<Offset>(
-                  begin: const Offset(0, 0.04),
+                  begin: Offset(0, 0.04),
                   end: Offset.zero,
                 ).animate(animation),
                 child: child,
@@ -713,7 +708,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
             ),
             child: switch (_stage) {
               _WorkflowStage.setup => _SetupView(
-                key: const ValueKey('setup'),
+                key: ValueKey('setup'),
                 mode: _activeMode,
                 onModeChanged: _setMode,
                 onStartPressed: _startWorkflow,
@@ -756,7 +751,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
                 ),
               ),
               _WorkflowStage.processing => _ProcessingView(
-                key: const ValueKey('processing'),
+                key: ValueKey('processing'),
                 mode: _activeMode,
                 onCancelPressed: _cancelWorkflow,
                 step1State: _step1State,
@@ -767,7 +762,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
                 fileSizeLabel: _fileSizeLabel,
               ),
               _WorkflowStage.success => _SuccessView(
-                key: const ValueKey('success'),
+                key: ValueKey('success'),
                 mode: _activeMode,
                 onRepeatPressed: _resetFlow,
                 generatedKey: _generatedKey,
@@ -840,7 +835,7 @@ class _SetupView extends StatelessWidget {
 
     return SingleChildScrollView(
       child: EncryptionContentContainer(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+        padding: EdgeInsets.fromLTRB(24, 12, 24, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -852,16 +847,16 @@ class _SetupView extends StatelessWidget {
               },
               textAlign: TextAlign.center,
               style: textTheme.titleLarge?.copyWith(
-                color: Colors.white,
+                color: context.encryptoColors.textPrimary,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.4,
               ),
             ),
             if (mode != EncryptionMode.steganography) ...[
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               _SegmentedModeControl(mode: mode, onChanged: onModeChanged),
             ],
-            const SizedBox(height: 22),
+            SizedBox(height: 22),
             switch (mode) {
               EncryptionMode.encrypt => _EncryptSetupContent(
                 onStartPressed: onStartPressed,
@@ -934,7 +929,7 @@ class _EncryptSetupContent extends StatelessWidget {
           label: 'Select Photo or File',
           icon: Icons.image_outlined,
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         _UploadCard(
           label: selectedFileName ?? 'Click to upload photo or file',
           hint: selectedFileName != null
@@ -945,9 +940,9 @@ class _EncryptSetupContent extends StatelessWidget {
               : Icons.image_rounded,
           onTap: onPickFile,
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 14),
         _SectionLabel(label: 'Scan Document', icon: Icons.file_present_rounded),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         _UploadCard(
           label: selectedFileName ?? 'Scan or attach a document',
           hint: selectedFileName != null
@@ -958,37 +953,37 @@ class _EncryptSetupContent extends StatelessWidget {
               : Icons.lock_outlined,
           onTap: onPickFile,
         ),
-        const SizedBox(height: 22),
+        SizedBox(height: 22),
         _SectionLabel(label: 'Encryption Option', icon: Icons.settings_rounded),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         _OptionRow(
           label: 'Biometric',
           icon: Icons.fingerprint_rounded,
-          color: const Color(0xFF60A5FA),
+          color: Color(0xFF60A5FA),
           selected: protectionMethod == ProtectionMethod.biometric,
           onTap: () {
             onProtectionMethodChanged(ProtectionMethod.biometric);
           },
         ),
 
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
 
         _OptionRow(
           label: 'Hybrid',
           icon: Icons.security_rounded,
-          color: const Color(0xFF34D399),
+          color: Color(0xFF34D399),
           selected: protectionMethod == ProtectionMethod.hybrid,
           onTap: () {
             onProtectionMethodChanged(ProtectionMethod.hybrid);
           },
         ),
 
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
 
         _OptionRow(
           label: 'Password Only',
           icon: Icons.lock_outlined,
-          color: const Color(0xFFA78BFA),
+          color: Color(0xFFA78BFA),
           selected: protectionMethod == ProtectionMethod.passwordOnly,
           onTap: () {
             onProtectionMethodChanged(ProtectionMethod.passwordOnly);
@@ -997,13 +992,14 @@ class _EncryptSetupContent extends StatelessWidget {
 
         if (protectionMethod == ProtectionMethod.hybrid ||
             protectionMethod == ProtectionMethod.passwordOnly) ...[
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
           TextField(
             controller: passwordController,
             obscureText: true,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: Colors.white),
             decoration: _secureInputDecoration(
+              context: context,
               hint: protectionMethod == ProtectionMethod.hybrid
                   ? 'Enter hybrid password'
                   : 'Enter sharing password',
@@ -1011,13 +1007,14 @@ class _EncryptSetupContent extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
 
           TextField(
             controller: confirmPasswordController,
             obscureText: true,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: Colors.white),
             decoration: _secureInputDecoration(
+              context: context,
               hint: protectionMethod == ProtectionMethod.hybrid
                   ? 'Confirm hybrid password'
                   : 'Confirm sharing password',
@@ -1025,101 +1022,104 @@ class _EncryptSetupContent extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
 
           Text(
             protectionMethod == ProtectionMethod.hybrid
                 ? 'Hybrid protection requires both your password and biometric authentication.'
                 : 'Use Password Only for files that will be shared through Steganography.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.white.withValues(alpha: 0.60),
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.60),
             ),
           ),
         ],
-        const SizedBox(height: 22),
+        SizedBox(height: 22),
         if (aiAnalysis != null) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              border: Border.all(
+                color: context.encryptoColors.textPrimary.withValues(
+                  alpha: 0.12,
+                ),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(
-                      Icons.auto_awesome_rounded,
-                      color: Color(0xFF60A5FA),
-                    ),
-                    const SizedBox(width: 8),
+                    Icon(Icons.auto_awesome_rounded, color: Color(0xFF60A5FA)),
+                    SizedBox(width: 8),
                     Text(
                       'AI Security Advisor',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
+                        color: context.encryptoColors.textPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 Text(
                   'Risk Level : ${aiAnalysis!['risk_level']}',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.encryptoColors.textPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   'Confidence : ${aiAnalysis!['confidence'] ?? '-'}%',
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white),
                 ),
                 Text(
                   'Risk Score : ${aiAnalysis!['risk_score']}',
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Text(
                   aiAnalysis!['reason'] ?? '',
-                  style: const TextStyle(color: Colors.white70),
+                  style: TextStyle(color: context.encryptoColors.textSecondary),
                 ),
-                const SizedBox(height: 12),
-                const Text(
+                SizedBox(height: 12),
+                Text(
                   'Detected:',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: context.encryptoColors.textPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 ...((aiAnalysis!['findings'] as List?) ?? []).map(
                   (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
+                    padding: EdgeInsets.only(bottom: 4),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.check_circle_rounded,
                           color: Colors.greenAccent,
                           size: 16,
                         ),
-                        const SizedBox(width: 6),
+                        SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             item.toString(),
-                            style: const TextStyle(color: Colors.white70),
+                            style: TextStyle(
+                              color: context.encryptoColors.textSecondary,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Text(
                   'Recommended : ${aiAnalysis!['recommendation']}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.greenAccent,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1127,7 +1127,7 @@ class _EncryptSetupContent extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
         ],
 
         _GradientCTAButton(
@@ -1175,7 +1175,7 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _SectionLabel(label: 'Select file', icon: Icons.file_present_rounded),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         _UploadCard(
           label: widget.selectedFileName ?? 'Upload Encrypted File',
           hint: widget.selectedFileName != null
@@ -1186,48 +1186,49 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
               : Icons.lock_outlined,
           onTap: widget.onPickFile,
         ),
+        SizedBox(height: 22),
         _SectionLabel(label: 'Decryption Option', icon: Icons.settings_rounded),
 
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
 
         _OptionRow(
           label: 'Biometric',
           icon: Icons.fingerprint_rounded,
-          color: const Color(0xFF60A5FA),
+          color: Color(0xFF60A5FA),
           selected: widget.protectionMethod == ProtectionMethod.biometric,
           onTap: () {
             widget.onProtectionMethodChanged(ProtectionMethod.biometric);
           },
         ),
 
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
 
         _OptionRow(
           label: 'Hybrid',
           icon: Icons.security_rounded,
-          color: const Color(0xFF34D399),
+          color: Color(0xFF34D399),
           selected: widget.protectionMethod == ProtectionMethod.hybrid,
           onTap: () {
             widget.onProtectionMethodChanged(ProtectionMethod.hybrid);
           },
         ),
 
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
 
         _OptionRow(
           label: 'Password Only',
           icon: Icons.lock_outline_rounded,
-          color: const Color(0xFFA78BFA),
+          color: Color(0xFFA78BFA),
           selected: widget.protectionMethod == ProtectionMethod.passwordOnly,
           onTap: () {
             widget.onProtectionMethodChanged(ProtectionMethod.passwordOnly);
           },
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18),
         if (widget.protectionMethod != ProtectionMethod.biometric) ...[
           _SectionLabel(label: 'Decryption Password', icon: Icons.key_rounded),
 
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
 
           TextField(
             controller: widget.keyController,
@@ -1239,12 +1240,16 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
                   : 'Enter sharing password',
 
               hintStyle: textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.45),
+                color: context.encryptoColors.textPrimary.withValues(
+                  alpha: 0.45,
+                ),
               ),
 
               prefixIcon: Icon(
                 Icons.lock_outline_rounded,
-                color: Colors.white.withValues(alpha: 0.6),
+                color: context.encryptoColors.textPrimary.withValues(
+                  alpha: 0.6,
+                ),
               ),
 
               suffixIcon: IconButton(
@@ -1257,12 +1262,16 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
                   _obscurePassword
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: context.encryptoColors.textPrimary.withValues(
+                    alpha: 0.6,
+                  ),
                 ),
               ),
 
               filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.08),
+              fillColor: context.encryptoColors.textPrimary.withValues(
+                alpha: 0.08,
+              ),
 
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -1271,21 +1280,20 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: context.encryptoColors.textPrimary.withValues(
+                    alpha: 0.15,
+                  ),
                 ),
               ),
 
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(
-                  color: AppColors.accent,
-                  width: 1.8,
-                ),
+                borderSide: BorderSide(color: AppColors.accent, width: 1.8),
               ),
             ),
           ),
 
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
         ],
         // Checkbox for hidden data
         GestureDetector(
@@ -1305,23 +1313,31 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
                     if (states.contains(WidgetState.selected)) {
                       return AppColors.accent;
                     }
-                    return Colors.white.withValues(alpha: 0.1);
+                    return context.encryptoColors.textPrimary.withValues(
+                      alpha: 0.1,
+                    );
                   }),
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                  side: BorderSide(
+                    color: context.encryptoColors.textPrimary.withValues(
+                      alpha: 0.3,
+                    ),
+                  ),
                 ),
               ),
               Expanded(
                 child: Text(
                   'Retrieve hidden steganography data',
                   style: textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.85),
+                    color: context.encryptoColors.textPrimary.withValues(
+                      alpha: 0.85,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         _GradientCTAButton(
           label: 'Decrypt File',
           onPressed: widget.onStartPressed,
@@ -1365,7 +1381,7 @@ class _SteganographySetupContent extends StatelessWidget {
           label: 'Hide data in image',
           icon: Icons.hide_image_rounded,
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         _UploadCard(
           label: stegoCoverImageName ?? 'Upload Cover Image',
           hint: stegoCoverImageName != null
@@ -1376,7 +1392,7 @@ class _SteganographySetupContent extends StatelessWidget {
               : Icons.image_rounded,
           onTap: onPickStegoCover,
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         _UploadCard(
           label: stegoFileName ?? 'Upload Encrypted File',
           hint: stegoFileName != null ? 'File to hide loaded' : 'Data to hide',
@@ -1385,38 +1401,44 @@ class _SteganographySetupContent extends StatelessWidget {
               : Icons.lock_outlined,
           onTap: onPickStegoFile,
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18),
         _GradientCTAButton(label: 'Hide Data', onPressed: onStartPressed),
-        const SizedBox(height: 22),
+        SizedBox(height: 22),
         // Divider
         Row(
           children: [
             Expanded(
               child: Container(
                 height: 1,
-                color: Colors.white.withValues(alpha: 0.10),
+                color: context.encryptoColors.textPrimary.withValues(
+                  alpha: 0.10,
+                ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: EdgeInsets.symmetric(horizontal: 12),
               child: Text(
                 'Retrieve hidden data',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: context.encryptoColors.textPrimary.withValues(
+                    alpha: 0.5,
+                  ),
                 ),
               ),
             ),
             Expanded(
               child: Container(
                 height: 1,
-                color: Colors.white.withValues(alpha: 0.10),
+                color: context.encryptoColors.textPrimary.withValues(
+                  alpha: 0.10,
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18),
         _SectionLabel(label: 'Stego image', icon: Icons.image_search_rounded),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         _UploadCard(
           label: stegoExtractImageName ?? 'Upload Stego Image',
           hint: stegoExtractImageName != null
@@ -1427,7 +1449,7 @@ class _SteganographySetupContent extends StatelessWidget {
               : Icons.image_search_rounded,
           onTap: onPickStegoExtract,
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18),
         _GradientCTAButton(label: 'Extract & Share', onPressed: onStartPressed),
       ],
     );
@@ -1465,7 +1487,7 @@ class _ProcessingView extends StatelessWidget {
 
     return SingleChildScrollView(
       child: EncryptionContentContainer(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -1476,14 +1498,14 @@ class _ProcessingView extends StatelessWidget {
                 EncryptionMode.steganography => 'Processing Steganography',
               },
               style: textTheme.titleLarge?.copyWith(
-                color: Colors.white,
+                color: context.encryptoColors.textPrimary,
                 fontWeight: FontWeight.w800,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 28),
+            SizedBox(height: 28),
             _AnimatedProcessingIllustration(mode: mode),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             ShaderMask(
               blendMode: BlendMode.srcIn,
               shaderCallback: (b) =>
@@ -1496,30 +1518,32 @@ class _ProcessingView extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               currentProgressLabel,
               style: textTheme.titleMedium?.copyWith(
-                color: Colors.white,
+                color: context.encryptoColors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
             Text(
               fileSizeLabel,
               style: textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.55),
+                color: context.encryptoColors.textPrimary.withValues(
+                  alpha: 0.55,
+                ),
               ),
             ),
-            const SizedBox(height: 26),
+            SizedBox(height: 26),
             EncryptionSurfaceCard(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Column(
                 children: [
                   _ProgressStep(
                     label: 'Initializing key & uploading',
                     state: step1State,
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   _ProgressStep(
                     label: switch (mode) {
                       EncryptionMode.encrypt => 'Applying encryption',
@@ -1528,22 +1552,27 @@ class _ProcessingView extends StatelessWidget {
                     },
                     state: step2State,
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   _ProgressStep(label: 'Finalizing process', state: step3State),
                 ],
               ),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22),
             SizedBox(
               width: double.infinity,
               height: 50,
               child: OutlinedButton.icon(
                 onPressed: onCancelPressed,
-                icon: const Icon(Icons.close_rounded),
-                label: const Text('Cancel'),
+                icon: Icon(Icons.close_rounded),
+                label: Text('Cancel'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white.withValues(alpha: 0.8),
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
+                  foregroundColor: context.encryptoColors.textPrimary
+                      .withValues(alpha: 0.8),
+                  side: BorderSide(
+                    color: context.encryptoColors.textPrimary.withValues(
+                      alpha: 0.25,
+                    ),
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -1587,7 +1616,7 @@ class _SuccessViewState extends State<_SuccessView> {
 
     return SingleChildScrollView(
       child: EncryptionContentContainer(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -1598,14 +1627,14 @@ class _SuccessViewState extends State<_SuccessView> {
                 EncryptionMode.steganography => 'Steganography Complete!',
               },
               style: textTheme.titleLarge?.copyWith(
-                color: Colors.white,
+                color: context.encryptoColors.textPrimary,
                 fontWeight: FontWeight.w800,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22),
             _AnimatedSuccessIllustration(mode: widget.mode),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             ShaderMask(
               blendMode: BlendMode.srcIn,
               shaderCallback: (b) => AppGradients.success.createShader(b),
@@ -1617,7 +1646,7 @@ class _SuccessViewState extends State<_SuccessView> {
                 ),
               ),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               switch (widget.mode) {
                 EncryptionMode.encrypt => 'File successfully encrypted.',
@@ -1625,71 +1654,75 @@ class _SuccessViewState extends State<_SuccessView> {
                 _ => 'Steganography complete.',
               },
               style: textTheme.titleMedium?.copyWith(
-                color: Colors.white,
+                color: context.encryptoColors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22),
             if (widget.mode == EncryptionMode.encrypt) ...[
               EncryptionSurfaceCard(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.fingerprint_rounded,
                       color: Color(0xFF60A5FA),
                       size: 28,
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     Text(
                       'Encryption Key Secured',
                       style: textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
+                        color: context.encryptoColors.textPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       'Your encryption key is protected with biometric authentication. Use fingerprint or face unlock during decryption.',
                       textAlign: TextAlign.center,
                       style: textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.78),
+                        color: context.encryptoColors.textPrimary.withValues(
+                          alpha: 0.78,
+                        ),
                         height: 1.4,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
             ],
             if (widget.mode == EncryptionMode.decrypt) ...[
               EncryptionSurfaceCard(
                 child: Column(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.info_outline_rounded,
                       color: Color(0xFF60A5FA),
                       size: 20,
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       'This file is private. Only download or share via secure channels.',
                       textAlign: TextAlign.center,
                       style: textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.82),
+                        color: context.encryptoColors.textPrimary.withValues(
+                          alpha: 0.82,
+                        ),
                         height: 1.5,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               _GradientCTAButton(
                 label: 'Share File',
                 icon: Icons.share_rounded,
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
                         'Share option is not configured. Use Download to save the file.',
                       ),
@@ -1697,18 +1730,20 @@ class _SuccessViewState extends State<_SuccessView> {
                   );
                 },
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: OutlinedButton.icon(
                   onPressed: widget.onDownload,
-                  icon: const Icon(Icons.download_rounded),
-                  label: const Text('Download'),
+                  icon: Icon(Icons.download_rounded),
+                  label: Text('Download'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.3),
+                      color: context.encryptoColors.textPrimary.withValues(
+                        alpha: 0.3,
+                      ),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -1722,14 +1757,14 @@ class _SuccessViewState extends State<_SuccessView> {
                 icon: Icons.save_alt_rounded,
                 onPressed: widget.onDownload,
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               _GradientCTAButton(
                 label: 'Upload to Cloud',
                 icon: Icons.cloud_upload_rounded,
                 gradient: AppGradients.success,
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
                         'File is already securely saved on the server.',
                       ),
@@ -1737,7 +1772,7 @@ class _SuccessViewState extends State<_SuccessView> {
                   );
                 },
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1751,32 +1786,41 @@ class _SuccessViewState extends State<_SuccessView> {
                       if (states.contains(WidgetState.selected)) {
                         return AppColors.accent;
                       }
-                      return Colors.white.withValues(alpha: 0.1);
+                      return context.encryptoColors.textPrimary.withValues(
+                        alpha: 0.1,
+                      );
                     }),
                     side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.3),
+                      color: context.encryptoColors.textPrimary.withValues(
+                        alpha: 0.3,
+                      ),
                     ),
                   ),
                   Text(
                     'Always upload to cloud',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: context.encryptoColors.textPrimary.withValues(
+                        alpha: 0.8,
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: OutlinedButton.icon(
                   onPressed: widget.onRepeatPressed,
-                  icon: const Icon(Icons.replay_rounded),
-                  label: const Text('Start over'),
+                  icon: Icon(Icons.replay_rounded),
+                  label: Text('Start over'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white.withValues(alpha: 0.8),
+                    foregroundColor: context.encryptoColors.textPrimary
+                        .withValues(alpha: 0.8),
                     side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.25),
+                      color: context.encryptoColors.textPrimary.withValues(
+                        alpha: 0.25,
+                      ),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -1826,21 +1870,22 @@ class _UploadCardState extends State<_UploadCard> {
       onTap: widget.onTap,
       child: AnimatedScale(
         scale: _hovered ? 0.97 : 1.0,
-        duration: const Duration(milliseconds: 120),
+        duration: Duration(milliseconds: 120),
         child: CustomPaint(
           painter: _DashedBorderPainter(
             color: _hovered
                 ? AppColors.accent.withValues(alpha: 0.6)
-                : Colors.white.withValues(alpha: 0.2),
+                : context.encryptoColors.textPrimary.withValues(alpha: 0.2),
             radius: 18,
           ),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            height: 86,
+            duration: Duration(milliseconds: 200),
+            constraints: BoxConstraints(minHeight: 86),
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
               color: _hovered
                   ? AppColors.accent.withValues(alpha: 0.10)
-                  : Colors.white.withValues(alpha: 0.04),
+                  : context.encryptoColors.textPrimary.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Row(
@@ -1852,7 +1897,7 @@ class _UploadCardState extends State<_UploadCard> {
                       AppGradients.accentHorizontal.createShader(b),
                   child: Icon(widget.icon, size: 28),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1863,7 +1908,7 @@ class _UploadCardState extends State<_UploadCard> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyLarge?.copyWith(
-                          color: Colors.white,
+                          color: context.encryptoColors.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1872,7 +1917,9 @@ class _UploadCardState extends State<_UploadCard> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.45),
+                          color: context.encryptoColors.textPrimary.withValues(
+                            alpha: 0.45,
+                          ),
                         ),
                       ),
                     ],
@@ -1901,9 +1948,11 @@ class _SegmentedModeControl extends StatelessWidget {
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: context.encryptoColors.textPrimary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(
+          color: context.encryptoColors.textPrimary.withValues(alpha: 0.12),
+        ),
       ),
       child: Row(
         children: [
@@ -1944,9 +1993,9 @@ class _SegmentedButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+          duration: Duration(milliseconds: 220),
           curve: Curves.easeOut,
-          margin: const EdgeInsets.all(4),
+          margin: EdgeInsets.all(4),
           height: 32,
           alignment: Alignment.center,
           decoration: BoxDecoration(
@@ -1962,15 +2011,17 @@ class _SegmentedButton extends StatelessWidget {
                 size: 14,
                 color: selected
                     ? Colors.white
-                    : Colors.white.withValues(alpha: 0.5),
+                    : context.encryptoColors.textPrimary.withValues(alpha: 0.5),
               ),
-              const SizedBox(width: 5),
+              SizedBox(width: 5),
               Text(
                 label,
                 style: TextStyle(
                   color: selected
                       ? Colors.white
-                      : Colors.white.withValues(alpha: 0.5),
+                      : context.encryptoColors.textPrimary.withValues(
+                          alpha: 0.5,
+                        ),
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   fontSize: 13,
                 ),
@@ -2006,17 +2057,17 @@ class _OptionRow extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        duration: Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
           color: selected
               ? color.withValues(alpha: 0.12)
-              : Colors.white.withValues(alpha: 0.05),
+              : context.encryptoColors.textPrimary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: selected
                 ? color.withValues(alpha: 0.4)
-                : Colors.white.withValues(alpha: 0.10),
+                : context.encryptoColors.textPrimary.withValues(alpha: 0.10),
             width: selected ? 1.5 : 1.0,
           ),
         ),
@@ -2028,29 +2079,33 @@ class _OptionRow extends StatelessWidget {
               decoration: BoxDecoration(
                 color: selected
                     ? color.withValues(alpha: 0.2)
-                    : Colors.white.withValues(alpha: 0.06),
+                    : context.encryptoColors.textPrimary.withValues(
+                        alpha: 0.06,
+                      ),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
                 size: 14,
-                color: selected ? color : Colors.white.withValues(alpha: 0.5),
+                color: selected
+                    ? color
+                    : context.encryptoColors.textPrimary.withValues(alpha: 0.5),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Text(
                 label,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: selected
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.75),
+                      ? context.encryptoColors.textPrimary
+                      : context.encryptoColors.textSecondary,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
             ),
             AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: Duration(milliseconds: 200),
               width: 18,
               height: 18,
               decoration: BoxDecoration(
@@ -2059,12 +2114,14 @@ class _OptionRow extends StatelessWidget {
                 border: Border.all(
                   color: selected
                       ? color
-                      : Colors.white.withValues(alpha: 0.25),
+                      : context.encryptoColors.textPrimary.withValues(
+                          alpha: 0.25,
+                        ),
                   width: 1.5,
                 ),
               ),
               child: selected
-                  ? const Icon(Icons.check, size: 11, color: Colors.white)
+                  ? Icon(Icons.check, size: 11, color: Colors.white)
                   : null,
             ),
           ],
@@ -2094,7 +2151,7 @@ class _ProgressStep extends StatelessWidget {
       _StepState.active => (Icons.radio_button_on_rounded, AppColors.accent),
       _StepState.pending => (
         Icons.radio_button_off_rounded,
-        Colors.white.withValues(alpha: 0.3),
+        context.encryptoColors.textPrimary.withValues(alpha: 0.3),
       ),
     };
 
@@ -2104,22 +2161,22 @@ class _ProgressStep extends StatelessWidget {
         Container(
           width: 3,
           height: 32,
-          margin: const EdgeInsets.only(right: 12),
+          margin: EdgeInsets.only(right: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(2),
             color: state == _StepState.pending
-                ? Colors.white.withValues(alpha: 0.10)
+                ? context.encryptoColors.textPrimary.withValues(alpha: 0.10)
                 : color.withValues(alpha: 0.7),
           ),
         ),
         Icon(icon, size: 18, color: color),
-        const SizedBox(width: 10),
+        SizedBox(width: 10),
         Expanded(
           child: Text(
             label,
             style: textTheme.bodyLarge?.copyWith(
               color: state == _StepState.pending
-                  ? Colors.white.withValues(alpha: 0.4)
+                  ? context.encryptoColors.textPrimary.withValues(alpha: 0.4)
                   : Colors.white,
               fontWeight: state == _StepState.active
                   ? FontWeight.w600
@@ -2142,26 +2199,36 @@ class _ProgressStep extends StatelessWidget {
 }
 
 InputDecoration _secureInputDecoration({
+  required BuildContext context,
   required String hint,
   required IconData icon,
 }) {
   return InputDecoration(
     hintText: hint,
-    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.45)),
-    prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.60)),
+    hintStyle: TextStyle(
+      color: context.encryptoColors.textPrimary.withValues(alpha: 0.45),
+    ),
+    prefixIcon: Icon(
+      icon,
+      color: context.encryptoColors.textPrimary.withValues(alpha: 0.60),
+    ),
     filled: true,
-    fillColor: Colors.white.withValues(alpha: 0.08),
+    fillColor: context.encryptoColors.textPrimary.withValues(alpha: 0.08),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+      borderSide: BorderSide(
+        color: context.encryptoColors.textPrimary.withValues(alpha: 0.15),
+      ),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+      borderSide: BorderSide(
+        color: context.encryptoColors.textPrimary.withValues(alpha: 0.15),
+      ),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: AppColors.accent, width: 1.8),
+      borderSide: BorderSide(color: AppColors.accent, width: 1.8),
     ),
   );
 }
@@ -2179,13 +2246,17 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: Colors.white.withValues(alpha: 0.5)),
-        const SizedBox(width: 6),
+        Icon(
+          icon,
+          size: 14,
+          color: context.encryptoColors.textPrimary.withValues(alpha: 0.5),
+        ),
+        SizedBox(width: 6),
         Text(
           label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Colors.white.withValues(alpha: 0.65),
-            fontWeight: FontWeight.w600,
+            color: context.encryptoColors.textSecondary,
+            fontWeight: FontWeight.w700,
             letterSpacing: 0.3,
           ),
         ),
@@ -2219,9 +2290,7 @@ class _GradientCTAButton extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: disabled
-              ? const LinearGradient(
-                  colors: [Color(0x22FFFFFF), Color(0x16FFFFFF)],
-                )
+              ? LinearGradient(colors: [Color(0x22FFFFFF), Color(0x16FFFFFF)])
               : gradient,
           borderRadius: BorderRadius.circular(16),
           boxShadow: disabled ? [] : AppShadows.accent,
@@ -2235,17 +2304,14 @@ class _GradientCTAButton extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            textStyle: const TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-            ),
+            textStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
           ),
           child: icon != null
               ? Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(icon, size: 18),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Text(label),
                   ],
                 )
@@ -2267,7 +2333,7 @@ class _WarningBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
@@ -2277,7 +2343,7 @@ class _WarningBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 16),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
@@ -2318,7 +2384,7 @@ class _AnimatedProcessingIllustrationState
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2400),
+      duration: Duration(milliseconds: 2400),
     )..repeat();
 
     _rotationAnimation = Tween<double>(
@@ -2390,7 +2456,7 @@ class _AnimatedProcessingIllustrationState
               // Core icon
               TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 500),
+                duration: Duration(milliseconds: 500),
                 curve: Curves.easeOutBack,
                 builder: (_, value, child) =>
                     Transform.scale(scale: value, child: child),
@@ -2437,7 +2503,7 @@ class _AnimatedSuccessIllustrationState
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: Duration(milliseconds: 1800),
     )..repeat(reverse: true);
 
     _pulseAnimation = Tween<double>(
@@ -2491,7 +2557,7 @@ class _AnimatedSuccessIllustrationState
               // Core
               TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 600),
+                duration: Duration(milliseconds: 600),
                 curve: Curves.easeOutBack,
                 builder: (_, value, child) =>
                     Transform.scale(scale: value, child: child),
@@ -2505,11 +2571,11 @@ class _AnimatedSuccessIllustrationState
                       BoxShadow(
                         color: AppColors.success.withValues(alpha: 0.5),
                         blurRadius: 30,
-                        offset: const Offset(0, 10),
+                        offset: Offset(0, 10),
                       ),
                     ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check_rounded,
                     color: Colors.white,
                     size: 44,
@@ -2528,7 +2594,7 @@ class _AnimatedSuccessIllustrationState
 // Custom arc painter for rotating ring
 // ---------------------------------------------------------------------------
 class _ArcPainter extends CustomPainter {
-  const _ArcPainter({required this.color});
+  _ArcPainter({required this.color});
 
   final Color color;
 
@@ -2552,7 +2618,7 @@ class _ArcPainter extends CustomPainter {
 // Dashed border painter for upload cards
 // ---------------------------------------------------------------------------
 class _DashedBorderPainter extends CustomPainter {
-  const _DashedBorderPainter({required this.color, required this.radius});
+  _DashedBorderPainter({required this.color, required this.radius});
 
   final Color color;
   final double radius;

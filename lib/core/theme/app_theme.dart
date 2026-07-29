@@ -43,6 +43,112 @@ class AppColors {
   static const Color overlay = Color(0x99000000);
 }
 
+@immutable
+class EncryptoColors extends ThemeExtension<EncryptoColors> {
+  const EncryptoColors({
+    required this.background,
+    required this.backgroundEnd,
+    required this.surface,
+    required this.surfaceRaised,
+    required this.border,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.icon,
+    required this.shadow,
+  });
+
+  final Color background;
+  final Color backgroundEnd;
+  final Color surface;
+  final Color surfaceRaised;
+  final Color border;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color icon;
+  final Color shadow;
+
+  static const dark = EncryptoColors(
+    background: Color(0xFF050608),
+    backgroundEnd: Color(0xFF0B0B0D),
+    surface: Color(0x0FFFFFFF),
+    surfaceRaised: Color(0x16FFFFFF),
+    border: Color(0x24FFFFFF),
+    textPrimary: Colors.white,
+    textSecondary: Color(0xB8FFFFFF),
+    icon: Color(0xE6FFFFFF),
+    shadow: Color(0x33000000),
+  );
+
+  static const light = EncryptoColors(
+    background: Color(0xFFF5F7FB),
+    backgroundEnd: Color(0xFFEDF2FA),
+    surface: Color(0xFFFFFFFF),
+    surfaceRaised: Color(0xFFF8FAFD),
+    border: Color(0xFFDCE3EF),
+    textPrimary: Color(0xFF172033),
+    textSecondary: Color(0xFF657086),
+    icon: Color(0xFF4B5870),
+    shadow: Color(0x1A172033),
+  );
+
+  @override
+  EncryptoColors copyWith({
+    Color? background,
+    Color? backgroundEnd,
+    Color? surface,
+    Color? surfaceRaised,
+    Color? border,
+    Color? textPrimary,
+    Color? textSecondary,
+    Color? icon,
+    Color? shadow,
+  }) {
+    return EncryptoColors(
+      background: background ?? this.background,
+      backgroundEnd: backgroundEnd ?? this.backgroundEnd,
+      surface: surface ?? this.surface,
+      surfaceRaised: surfaceRaised ?? this.surfaceRaised,
+      border: border ?? this.border,
+      textPrimary: textPrimary ?? this.textPrimary,
+      textSecondary: textSecondary ?? this.textSecondary,
+      icon: icon ?? this.icon,
+      shadow: shadow ?? this.shadow,
+    );
+  }
+
+  @override
+  EncryptoColors lerp(covariant EncryptoColors? other, double t) {
+    if (other == null) return this;
+    return EncryptoColors(
+      background: Color.lerp(background, other.background, t)!,
+      backgroundEnd: Color.lerp(backgroundEnd, other.backgroundEnd, t)!,
+      surface: Color.lerp(surface, other.surface, t)!,
+      surfaceRaised: Color.lerp(surfaceRaised, other.surfaceRaised, t)!,
+      border: Color.lerp(border, other.border, t)!,
+      textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
+      textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
+      icon: Color.lerp(icon, other.icon, t)!,
+      shadow: Color.lerp(shadow, other.shadow, t)!,
+    );
+  }
+}
+
+extension EncryptoThemeContext on BuildContext {
+  EncryptoColors get encryptoColors =>
+      Theme.of(this).extension<EncryptoColors>() ?? EncryptoColors.dark;
+}
+
+LinearGradient encryptoCardGradient(BuildContext context) {
+  if (Theme.of(context).brightness == Brightness.dark) {
+    return AppGradients.card;
+  }
+  return const LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFD)],
+  );
+}
+
 class AppGradients {
   AppGradients._();
 
@@ -111,19 +217,11 @@ class AppShadows {
   ];
 
   static const List<BoxShadow> card = [
-    BoxShadow(
-      color: Color(0x1A000000),
-      blurRadius: 16,
-      offset: Offset(0, 4),
-    ),
+    BoxShadow(color: Color(0x1A000000), blurRadius: 16, offset: Offset(0, 4)),
   ];
 
   static const List<BoxShadow> panel = [
-    BoxShadow(
-      color: Color(0x26000000),
-      blurRadius: 32,
-      offset: Offset(0, -10),
-    ),
+    BoxShadow(color: Color(0x26000000), blurRadius: 32, offset: Offset(0, -10)),
   ];
 
   static const List<BoxShadow> navCenter = [
@@ -144,16 +242,18 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.accent,
-        brightness: Brightness.light,
-      ).copyWith(
-        primary: AppColors.accent,
-        onPrimary: AppColors.onAccent,
-        surface: AppColors.panel,
-        error: AppColors.error,
-      ),
-      scaffoldBackgroundColor: AppColors.backgroundStart,
+      colorScheme:
+          ColorScheme.fromSeed(
+            seedColor: AppColors.accent,
+            brightness: Brightness.light,
+          ).copyWith(
+            primary: AppColors.accent,
+            onPrimary: AppColors.onAccent,
+            surface: AppColors.panel,
+            error: AppColors.error,
+          ),
+      scaffoldBackgroundColor: EncryptoColors.light.background,
+      extensions: const [EncryptoColors.light],
       textTheme: textTheme.copyWith(
         displayLarge: textTheme.displayLarge?.copyWith(
           fontWeight: FontWeight.w800,
@@ -277,6 +377,69 @@ class AppTheme {
           return Colors.white;
         }),
         checkColor: const WidgetStatePropertyAll(Colors.white),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: EncryptoColors.light.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF172033),
+        contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  static ThemeData get dark {
+    final textTheme = GoogleFonts.spaceGroteskTextTheme(
+      ThemeData.dark().textTheme,
+    );
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme:
+          ColorScheme.fromSeed(
+            seedColor: AppColors.accent,
+            brightness: Brightness.dark,
+          ).copyWith(
+            primary: AppColors.accent,
+            onPrimary: Colors.white,
+            surface: AppColors.backgroundStart,
+            error: AppColors.error,
+          ),
+      scaffoldBackgroundColor: AppColors.backgroundStart,
+      extensions: const [EncryptoColors.dark],
+      textTheme: textTheme.copyWith(
+        titleLarge: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+        titleMedium: textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
+        bodyLarge: textTheme.bodyLarge?.copyWith(height: 1.5),
+        bodyMedium: textTheme.bodyMedium?.copyWith(height: 1.5),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.backgroundStart,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF202534),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? Colors.white
+              : const Color(0xFFCBD3E0),
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.accent
+              : const Color(0xFF343A46),
+        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ class SessionService {
 
   static const String _tokenKey = 'access_token';
   static const String _emailKey = 'user_email';
+  static const String _nameKey = 'user_name';
 
   static Future<void> saveLoginSession({
     required String accessToken,
@@ -28,6 +29,21 @@ class SessionService {
 
   static Future<String?> getUserEmail() {
     return _storage.read(key: _emailKey);
+  }
+
+  static Future<String?> getUserName() {
+    return _storage.read(key: _nameKey);
+  }
+
+  static Future<void> saveUserProfile({
+    required String name,
+    required String email,
+  }) async {
+    await _storage.write(key: _nameKey, value: name.trim());
+    await _storage.write(
+      key: _emailKey,
+      value: email.trim().toLowerCase(),
+    );
   }
 
   static Future<bool> hasActiveSession() async {
@@ -68,5 +84,6 @@ static Future<void> saveLastSeenSecurityIncidentId(
   static Future<void> clearSession() async {
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _emailKey);
+    await _storage.delete(key: _nameKey);
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
+import 'package:encrypto/features/encryption/presentation/widgets/encryption_state_message.dart';
 import 'package:encrypto/services/api_service.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -158,7 +159,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         Expanded(
           child: SingleChildScrollView(
             child: EncryptionContentContainer(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -168,12 +169,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         blendMode: BlendMode.srcIn,
                         shaderCallback: (bounds) =>
                             AppGradients.accentHorizontal.createShader(bounds),
-                        child: const Icon(
-                          Icons.notifications_none_rounded,
-                          size: 22,
-                        ),
+                        child: Icon(Icons.notifications_none_rounded, size: 22),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +179,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                             Text(
                               'Notifications',
                               style: textTheme.titleLarge?.copyWith(
-                                color: Colors.white,
+                                color: context.encryptoColors.textPrimary,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0,
                               ),
@@ -189,7 +187,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                             Text(
                               'Security updates and vault activity',
                               style: textTheme.bodySmall?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.58),
+                                color: context.encryptoColors.textPrimary
+                                    .withValues(alpha: 0.58),
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0,
                               ),
@@ -200,20 +199,46 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       _UnreadBadge(count: _unreadCount),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  _NotificationSection(
-                    title: 'New',
-                    items: _newItems,
-                    onMarkRead: _markRead,
-                    onMute: _mute,
-                  ),
-                  const SizedBox(height: 18),
-                  _NotificationSection(
-                    title: 'Earlier',
-                    items: _todayItems,
-                    onMarkRead: _markRead,
-                    onMute: _mute,
-                  ),
+                  SizedBox(height: 20),
+                  if (_loadingNotifications)
+                    EncryptionStateMessage(
+                      icon: Icons.sync_rounded,
+                      title: 'Loading notifications',
+                      message: 'Checking for your latest security updates.',
+                      showProgress: true,
+                    )
+                  else if (_notificationError != null)
+                    EncryptionStateMessage(
+                      icon: Icons.cloud_off_rounded,
+                      title: 'Couldn’t load notifications',
+                      message: 'Check your connection and try again.',
+                      actionLabel: 'Try again',
+                      onAction: _loadNotifications,
+                    )
+                  else if (_newItems.isEmpty && _todayItems.isEmpty)
+                    EncryptionStateMessage(
+                      icon: Icons.notifications_none_rounded,
+                      title: 'You’re all caught up',
+                      message:
+                          'Security alerts and vault activity will appear here.',
+                    )
+                  else ...[
+                    _NotificationSection(
+                      title: 'New',
+                      items: _newItems,
+                      onMarkRead: _markRead,
+                      onMute: _mute,
+                    ),
+                    if (_todayItems.isNotEmpty) ...[
+                      SizedBox(height: 18),
+                      _NotificationSection(
+                        title: 'Earlier',
+                        items: _todayItems,
+                        onMarkRead: _markRead,
+                        onMute: _mute,
+                      ),
+                    ],
+                  ],
                 ],
               ),
             ),
@@ -252,7 +277,7 @@ class _UnreadBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.accent.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(999),
@@ -286,7 +311,7 @@ class _NotificationSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return EncryptionSurfaceCard(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -295,30 +320,32 @@ class _NotificationSection extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
+                  color: context.encryptoColors.textPrimary,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0,
                 ),
               ),
-              const Spacer(),
+              Spacer(),
               Text(
                 '${items.length}',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.48),
+                  color: context.encryptoColors.textPrimary.withValues(
+                    alpha: 0.48,
+                  ),
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           for (var index = 0; index < items.length; index++) ...[
             _NotificationTile(
               item: items[index],
               onMarkRead: () => onMarkRead(items[index]),
               onMute: () => onMute(items[index]),
             ),
-            if (index != items.length - 1) const SizedBox(height: 10),
+            if (index != items.length - 1) SizedBox(height: 10),
           ],
         ],
       ),
@@ -347,23 +374,23 @@ class _NotificationTile extends StatelessWidget {
         onTap: item.unread ? onMarkRead : null,
         borderRadius: BorderRadius.circular(16),
         child: Ink(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: item.unread
-                ? Colors.white.withValues(alpha: 0.09)
-                : Colors.white.withValues(alpha: 0.05),
+                ? context.encryptoColors.textPrimary.withValues(alpha: 0.09)
+                : context.encryptoColors.textPrimary.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: item.unread
                   ? item.color.withValues(alpha: 0.34)
-                  : Colors.white.withValues(alpha: 0.10),
+                  : context.encryptoColors.textPrimary.withValues(alpha: 0.10),
             ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _NotificationIcon(item: item),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,7 +404,7 @@ class _NotificationTile extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: textTheme.bodyMedium?.copyWith(
-                              color: Colors.white,
+                              color: context.encryptoColors.textPrimary,
                               fontWeight: FontWeight.w800,
                               height: 1.2,
                               letterSpacing: 0,
@@ -385,11 +412,11 @@ class _NotificationTile extends StatelessWidget {
                           ),
                         ),
                         if (item.unread) ...[
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Container(
                             width: 8,
                             height: 8,
-                            margin: const EdgeInsets.only(top: 4),
+                            margin: EdgeInsets.only(top: 4),
                             decoration: BoxDecoration(
                               color: item.color,
                               shape: BoxShape.circle,
@@ -398,19 +425,21 @@ class _NotificationTile extends StatelessWidget {
                         ],
                       ],
                     ),
-                    const SizedBox(height: 3),
+                    SizedBox(height: 3),
                     Text(
                       item.body,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.56),
+                        color: context.encryptoColors.textPrimary.withValues(
+                          alpha: 0.56,
+                        ),
                         fontWeight: FontWeight.w600,
                         height: 1.25,
                         letterSpacing: 0,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     item.hasActions
                         ? _NotificationActions(
                             item: item,
@@ -469,9 +498,9 @@ class _NotificationActions extends StatelessWidget {
           label: item.unread ? 'Mark read' : 'Read',
           onTap: item.unread ? onMarkRead : null,
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         _ActionChipButton(label: 'Mute', onTap: onMute),
-        const Spacer(),
+        Spacer(),
         _NotificationTime(time: item.time),
       ],
     );
@@ -492,18 +521,24 @@ class _ActionChipButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: enabled ? 0.08 : 0.04),
+          color: context.encryptoColors.textPrimary.withValues(
+            alpha: enabled ? 0.08 : 0.04,
+          ),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: Colors.white.withValues(alpha: enabled ? 0.12 : 0.06),
+            color: context.encryptoColors.textPrimary.withValues(
+              alpha: enabled ? 0.12 : 0.06,
+            ),
           ),
         ),
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: Colors.white.withValues(alpha: enabled ? 0.82 : 0.36),
+            color: context.encryptoColors.textPrimary.withValues(
+              alpha: enabled ? 0.82 : 0.36,
+            ),
             fontWeight: FontWeight.w800,
             letterSpacing: 0,
           ),
@@ -523,7 +558,7 @@ class _NotificationTime extends StatelessWidget {
     return Text(
       time,
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: Colors.white.withValues(alpha: 0.46),
+        color: context.encryptoColors.textPrimary.withValues(alpha: 0.46),
         fontWeight: FontWeight.w700,
         letterSpacing: 0,
       ),

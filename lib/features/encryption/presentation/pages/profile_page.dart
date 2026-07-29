@@ -2,16 +2,21 @@ import 'package:flutter/material.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
+import 'package:encrypto/features/encryption/presentation/widgets/profile_dialogs.dart';
 import 'package:encrypto/services/session_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({
     super.key,
     this.onBackPressed,
+    this.onNotificationsPressed,
+    this.onSettingsPressed,
     this.showBackButton = true,
   });
 
   final VoidCallback? onBackPressed;
+  final VoidCallback? onNotificationsPressed;
+  final VoidCallback? onSettingsPressed;
   final bool showBackButton;
 
   @override
@@ -32,81 +37,102 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadUserProfile() async {
-  final email = await SessionService.getUserEmail();
+    final email = await SessionService.getUserEmail();
+    final savedName = await SessionService.getUserName();
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  final emailValue = email ?? '';
-  final emailName = emailValue.split('@').first;
+    final emailValue = email ?? '';
+    final emailName = emailValue.split('@').first;
 
-  final formattedName = emailName
-      .replaceAll(RegExp(r'[._-]+'), ' ')
-      .split(' ')
-      .where((part) => part.isNotEmpty)
-      .map(
-        (part) =>
-            '${part[0].toUpperCase()}${part.substring(1)}',
-      )
-      .join(' ');
+    final formattedName = emailName
+        .replaceAll(RegExp(r'[._-]+'), ' ')
+        .split(' ')
+        .where((part) => part.isNotEmpty)
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
 
-  setState(() {
-    _userEmail =
-        emailValue.isEmpty ? 'No email available' : emailValue;
-    _userName =
-        formattedName.isEmpty ? 'Vault User' : formattedName;
-  });
-}
+    setState(() {
+      _userEmail = emailValue.isEmpty ? 'No email available' : emailValue;
+      _userName = savedName?.trim().isNotEmpty == true
+          ? savedName!.trim()
+          : (formattedName.isEmpty ? 'Vault User' : formattedName);
+    });
+  }
+
+  Future<void> _editProfile() async {
+    final updated = await showEditProfileDialog(
+      context: context,
+      initialName: _userName,
+      initialEmail: _userEmail,
+    );
+    if (!updated || !mounted) return;
+    await _loadUserProfile();
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Profile updated successfully.')));
+    }
+  }
+
+  Future<void> _changePassword() async {
+    final changed = await showChangePasswordDialog(context);
+    if (changed && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Password changed successfully.')));
+    }
+  }
 
   void _showComingSoon(String label) {
-  final messages = <String, String>{
-    'Edit Profile':
-        'Profile editing options are available from this section.',
-    'Change password':
-        'Password changes require current password verification.',
-    'Language':
-        'English is currently selected as the application language.',
-    'Invite Friends':
-        'Share Encrypto with friends and help them protect their files.',
-    'Help Center':
-        'Select a file, choose a security mode, and use Encrypt or Decrypt. '
-        'Failed login attempts can be viewed from the Security page.',
-  };
+    final messages = <String, String>{
+      'Edit Profile':
+          'Profile editing options are available from this section.',
+      'Change password':
+          'Password changes require current password verification.',
+      'Language': 'English is currently selected as the application language.',
+      'Invite Friends':
+          'Share Encrypto with friends and help them protect their files.',
+      'Help Center':
+          'Select a file, choose a security mode, and use Encrypt or Decrypt. '
+          'Failed login attempts can be viewed from the Security page.',
+    };
 
-  showDialog<void>(
-    context: context,
-    builder: (dialogContext) {
-      return AlertDialog(
-        backgroundColor: AppColors.backgroundStart,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: Colors.white.withValues(alpha: 0.18),
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: context.encryptoColors.background,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.18),
+            ),
           ),
-        ),
-        title: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
+          title: Text(
+            label,
+            style: TextStyle(
+              color: context.encryptoColors.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-        content: Text(
-          messages[label] ?? '$label is available in a future update.',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.72),
-            height: 1.5,
+          content: Text(
+            messages[label] ?? '$label is available in a future update.',
+            style: TextStyle(
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.72),
+              height: 1.5,
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      );
-    },
-  );
-}
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,11 +143,13 @@ class _ProfilePageState extends State<ProfilePage> {
         EncryptoTopBar(
           showBackButton: widget.showBackButton,
           onBackPressed: widget.onBackPressed,
+          onNotificationsPressed: widget.onNotificationsPressed,
+          onSettingsPressed: widget.onSettingsPressed,
         ),
         Expanded(
           child: SingleChildScrollView(
             child: EncryptionContentContainer(
-              padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
+              padding: EdgeInsets.fromLTRB(24, 18, 24, 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -129,37 +157,34 @@ class _ProfilePageState extends State<ProfilePage> {
                     'User Profile',
                     textAlign: TextAlign.center,
                     style: textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
+                      color: context.encryptoColors.textPrimary,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0,
                     ),
                   ),
-                  const SizedBox(height: 22),
-                  _ProfileHero(
-                    name: _userName,
-                  email: _userEmail,
-                  ),
-                  const SizedBox(height: 28),
+                  SizedBox(height: 22),
+                  _ProfileHero(name: _userName, email: _userEmail),
+                  SizedBox(height: 28),
                   Text(
                     'Personal Information',
                     style: textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
+                      color: context.encryptoColors.textPrimary,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   _ProfileMenuGroup(
                     children: [
                       _ProfileActionTile(
                         icon: Icons.manage_accounts_outlined,
                         label: 'Edit Profile',
-                        onTap: () => _showComingSoon('Edit Profile'),
+                        onTap: _editProfile,
                       ),
                       _ProfileActionTile(
                         icon: Icons.password_rounded,
                         label: 'Change password',
-                        onTap: () => _showComingSoon('Change password'),
+                        onTap: _changePassword,
                       ),
                       _ProfileSwitchTile(
                         icon: Icons.fingerprint_rounded,
@@ -206,10 +231,7 @@ class _ProfilePageState extends State<ProfilePage> {
 }
 
 class _ProfileHero extends StatelessWidget {
-  const _ProfileHero({
-    required this.name,
-    required this.email,
-  });
+  const _ProfileHero({required this.name, required this.email});
 
   final String name;
   final String email;
@@ -217,6 +239,7 @@ class _ProfileHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       children: [
@@ -231,16 +254,22 @@ class _ProfileHero extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: AppGradients.accent,
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.86),
-                  width: 4,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.86)
+                      : AppColors.accent.withValues(alpha: 0.32),
+                  width: isDark ? 4 : 3,
                 ),
-                boxShadow: AppShadows.accentGlow,
+                boxShadow: isDark
+                    ? AppShadows.accentGlow
+                    : [
+                        BoxShadow(
+                          color: AppColors.accent.withValues(alpha: 0.24),
+                          blurRadius: 24,
+                          offset: Offset(0, 10),
+                        ),
+                      ],
               ),
-              child: const Icon(
-                Icons.person_rounded,
-                color: Colors.white,
-                size: 46,
-              ),
+              child: Icon(Icons.person_rounded, color: Colors.white, size: 46),
             ),
             Positioned(
               right: 6,
@@ -252,7 +281,9 @@ class _ProfileHero extends StatelessWidget {
                   color: AppColors.success,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.backgroundStart,
+                    color: isDark
+                        ? AppColors.backgroundStart
+                        : context.encryptoColors.background,
                     width: 3,
                   ),
                 ),
@@ -260,29 +291,29 @@ class _ProfileHero extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         Text(
           name,
           textAlign: TextAlign.center,
           style: textTheme.titleMedium?.copyWith(
-            color: Colors.white,
+            color: context.encryptoColors.textPrimary,
             fontWeight: FontWeight.w800,
             letterSpacing: 0,
           ),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: 2),
         Text(
           email,
           textAlign: TextAlign.center,
           style: textTheme.bodyMedium?.copyWith(
-            color: Colors.white.withValues(alpha: 0.46),
+            color: context.encryptoColors.textPrimary.withValues(alpha: 0.46),
             fontWeight: FontWeight.w600,
             letterSpacing: 0,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
             color: AppColors.accent.withValues(alpha: 0.16),
             borderRadius: BorderRadius.circular(999),
@@ -291,7 +322,7 @@ class _ProfileHero extends StatelessWidget {
           child: Text(
             'Vault owner',
             style: textTheme.labelMedium?.copyWith(
-              color: Colors.white.withValues(alpha: 0.88),
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.88),
               fontWeight: FontWeight.w800,
               letterSpacing: 0,
             ),
@@ -313,7 +344,7 @@ class _ProfileMenuGroup extends StatelessWidget {
       children: [
         for (var index = 0; index < children.length; index++) ...[
           children[index],
-          if (index != children.length - 1) const SizedBox(height: 12),
+          if (index != children.length - 1) SizedBox(height: 12),
         ],
       ],
     );
@@ -340,22 +371,24 @@ class _ProfileActionTile extends StatelessWidget {
       child: Row(
         children: [
           _TileIcon(icon: icon),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(child: _TileLabel(label)),
           if (trailingText case final value?) ...[
             Text(
               value,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white.withValues(alpha: 0.48),
+                color: context.encryptoColors.textPrimary.withValues(
+                  alpha: 0.48,
+                ),
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0,
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
           ],
           Icon(
             Icons.chevron_right_rounded,
-            color: Colors.white.withValues(alpha: 0.56),
+            color: context.encryptoColors.textPrimary.withValues(alpha: 0.56),
             size: 26,
           ),
         ],
@@ -384,17 +417,21 @@ class _ProfileSwitchTile extends StatelessWidget {
       child: Row(
         children: [
           _TileIcon(icon: icon),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(child: _TileLabel(label)),
           Switch(
             value: value,
             onChanged: onChanged,
             activeThumbColor: Colors.white,
             activeTrackColor: AppColors.accent,
-            inactiveThumbColor: Colors.white.withValues(alpha: 0.82),
-            inactiveTrackColor: Colors.white.withValues(alpha: 0.16),
+            inactiveThumbColor: context.encryptoColors.textPrimary.withValues(
+              alpha: 0.82,
+            ),
+            inactiveTrackColor: context.encryptoColors.textPrimary.withValues(
+              alpha: 0.16,
+            ),
             trackOutlineColor: WidgetStatePropertyAll(
-              Colors.white.withValues(alpha: 0.16),
+              context.encryptoColors.textPrimary.withValues(alpha: 0.16),
             ),
           ),
         ],
@@ -418,17 +455,17 @@ class _ProfileTileShell extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           decoration: BoxDecoration(
-            gradient: AppGradients.card,
+            gradient: encryptoCardGradient(context),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.22),
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.22),
               width: 1,
             ),
           ),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 58),
+            constraints: BoxConstraints(minHeight: 58),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: child,
             ),
           ),
@@ -466,7 +503,7 @@ class _TileLabel extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-        color: Colors.white.withValues(alpha: 0.92),
+        color: context.encryptoColors.textPrimary.withValues(alpha: 0.92),
         fontWeight: FontWeight.w700,
         letterSpacing: 0,
       ),

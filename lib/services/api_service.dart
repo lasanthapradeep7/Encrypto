@@ -57,6 +57,46 @@ static Future<Map<String, String>> _authHeaders({
     return {"status": response.statusCode, "body": jsonDecode(response.body)};
   }
 
+  static Map<String, dynamic> _responseResult(http.Response response) {
+    dynamic body;
+    try {
+      body = jsonDecode(response.body);
+    } catch (_) {
+      body = {'detail': 'The server returned an invalid response.'};
+    }
+    return {'status': response.statusCode, 'body': body};
+  }
+
+  static Future<Map<String, dynamic>> updateProfile({
+    required String fullName,
+    required String email,
+  }) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/auth/me'),
+      headers: await _authHeaders(includeJson: true),
+      body: jsonEncode({
+        'full_name': fullName.trim(),
+        'email': email.trim().toLowerCase(),
+      }),
+    );
+    return _responseResult(response);
+  }
+
+  static Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/change-password'),
+      headers: await _authHeaders(includeJson: true),
+      body: jsonEncode({
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      }),
+    );
+    return _responseResult(response);
+  }
+
   static Future<Map<String, dynamic>> uploadFile(String filePath) async {
     final uri = Uri.parse("$baseUrl/files/upload");
     final request = http.MultipartRequest("POST", uri);

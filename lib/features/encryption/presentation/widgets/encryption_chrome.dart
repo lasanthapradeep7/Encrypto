@@ -22,7 +22,7 @@ class EncryptionContentContainer extends StatelessWidget {
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 540),
+        constraints: BoxConstraints(maxWidth: 540),
         child: Padding(padding: padding, child: child),
       ),
     );
@@ -47,17 +47,17 @@ class EncryptionSurfaceCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        gradient: AppGradients.card,
+        gradient: encryptoCardGradient(context),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.14),
+          color: context.encryptoColors.textPrimary.withValues(alpha: 0.14),
           width: 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
+            color: context.encryptoColors.shadow.withValues(alpha: 0.18),
             blurRadius: 20,
-            offset: const Offset(0, 6),
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -74,14 +74,12 @@ class EncryptoTopBar extends StatelessWidget {
     super.key,
     this.showBackButton = false,
     this.onBackPressed,
-    this.onProfilePressed,
     this.onNotificationsPressed,
     this.onSettingsPressed,
   });
 
   final bool showBackButton;
   final VoidCallback? onBackPressed;
-  final VoidCallback? onProfilePressed;
   final VoidCallback? onNotificationsPressed;
   final VoidCallback? onSettingsPressed;
 
@@ -92,10 +90,12 @@ class EncryptoTopBar extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.04),
+            color: context.encryptoColors.textPrimary.withValues(alpha: 0.04),
             border: Border(
               bottom: BorderSide(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: context.encryptoColors.textPrimary.withValues(
+                  alpha: 0.08,
+                ),
                 width: 0.5,
               ),
             ),
@@ -103,9 +103,9 @@ class EncryptoTopBar extends StatelessWidget {
           child: Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 540),
+              constraints: BoxConstraints(maxWidth: 540),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 10, 24, 12),
+                padding: EdgeInsets.fromLTRB(24, 10, 24, 12),
                 child: Row(
                   children: [
                     if (showBackButton) ...[
@@ -114,38 +114,28 @@ class EncryptoTopBar extends StatelessWidget {
                         tooltip: 'Go back',
                         onTap: onBackPressed,
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                     ],
-                    const _BrandMark(),
-                    const SizedBox(width: 8),
                     ShaderMask(
                       blendMode: BlendMode.srcIn,
                       shaderCallback: (b) => AppGradients.brand.createShader(b),
-                      child: const Text(
+                      child: Text(
                         'Encrypto',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.4,
-                          color: Colors.white,
+                          color: context.encryptoColors.textPrimary,
                         ),
                       ),
                     ),
-                    const Spacer(),
-                    if (!showBackButton) ...[
-                      _TopActionIcon(
-                        icon: Icons.person_rounded,
-                        tooltip: 'Profile',
-                        onTap: onProfilePressed,
-                      ),
-                      const SizedBox(width: 6),
-                    ],
+                    Spacer(),
                     _TopActionIcon(
                       icon: Icons.notifications_none_rounded,
                       tooltip: 'Notifications',
                       onTap: onNotificationsPressed,
                     ),
-                    const SizedBox(width: 6),
+                    SizedBox(width: 6),
                     _TopActionIcon(
                       icon: Icons.settings_outlined,
                       tooltip: 'Settings',
@@ -177,8 +167,9 @@ class EncryptionBottomNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 14),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
@@ -186,15 +177,21 @@ class EncryptionBottomNavigationBar extends StatelessWidget {
           child: Container(
             height: 64,
             decoration: BoxDecoration(
-              color: const Color(0xF2F8F8F8),
+              color: isDark
+                  ? Color(0xF2F8F8F8)
+                  : context.encryptoColors.surface,
               borderRadius: BorderRadius.circular(32),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.7),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.7)
+                    : context.encryptoColors.border,
                 width: 1.0,
               ),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: Color(0x28000000),
+                  color: isDark
+                      ? Color(0x28000000)
+                      : context.encryptoColors.shadow,
                   blurRadius: 28,
                   offset: Offset(0, 12),
                 ),
@@ -247,33 +244,6 @@ class EncryptionBottomNavigationBar extends StatelessWidget {
 // Private helpers
 // ---------------------------------------------------------------------------
 
-class _BrandMark extends StatelessWidget {
-  const _BrandMark();
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 38,
-      height: 38,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: AppGradients.accent,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accent.withValues(alpha: 0.38),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: const Icon(
-        Icons.shield_moon_rounded,
-        color: Colors.white,
-        size: 20,
-      ),
-    );
-  }
-}
-
 class _TopActionIcon extends StatelessWidget {
   const _TopActionIcon({required this.icon, required this.tooltip, this.onTap});
 
@@ -293,16 +263,16 @@ class _TopActionIcon extends StatelessWidget {
           height: 36,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.10),
+            color: context.encryptoColors.textPrimary.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.14),
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.14),
               width: 0.8,
             ),
           ),
           child: Icon(
             icon,
-            color: Colors.white.withValues(alpha: 0.9),
+            color: context.encryptoColors.textPrimary.withValues(alpha: 0.9),
             size: 18,
           ),
         ),
@@ -326,18 +296,24 @@ class _BottomNavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inactiveColor = isDark
+        ? Color(0xFF9CA3AF)
+        : context.encryptoColors.textSecondary;
+    final selectedColor = isDark ? AppColors.accentDark : Color(0xFF3D4FE0);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(34),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
+        duration: Duration(milliseconds: 250),
         curve: Curves.easeOut,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AnimatedScale(
               scale: selected ? 1.15 : 1.0,
-              duration: const Duration(milliseconds: 200),
+              duration: Duration(milliseconds: 200),
               child: selected
                   ? ShaderMask(
                       blendMode: BlendMode.srcIn,
@@ -345,28 +321,26 @@ class _BottomNavButton extends StatelessWidget {
                           AppGradients.accentHorizontal.createShader(b),
                       child: Icon(icon, size: 22),
                     )
-                  : Icon(icon, color: const Color(0xFF9CA3AF), size: 22),
+                  : Icon(icon, color: inactiveColor, size: 22),
             ),
-            const SizedBox(height: 2),
+            SizedBox(height: 2),
             AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
+              duration: Duration(milliseconds: 200),
               style: TextStyle(
                 fontSize: 10,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected
-                    ? AppColors.accentDark
-                    : const Color(0xFF9CA3AF),
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                color: selected ? selectedColor : inactiveColor,
                 letterSpacing: 0.2,
               ),
               child: Text(label),
             ),
             // Selection indicator
             AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
+              duration: Duration(milliseconds: 250),
               curve: Curves.easeOut,
               width: selected ? 16 : 0,
               height: 3,
-              margin: const EdgeInsets.only(top: 3),
+              margin: EdgeInsets.only(top: 3),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(2),
                 gradient: selected ? AppGradients.accentHorizontal : null,

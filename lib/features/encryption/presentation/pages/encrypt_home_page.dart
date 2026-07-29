@@ -28,14 +28,13 @@ class EncryptHomePage extends StatelessWidget {
     return Column(
       children: [
         EncryptoTopBar(
-          onProfilePressed: onOpenProfile,
           onNotificationsPressed: onOpenNotifications,
           onSettingsPressed: onOpenSettings,
         ),
         Expanded(
           child: SingleChildScrollView(
             child: EncryptionContentContainer(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -45,9 +44,9 @@ class EncryptHomePage extends StatelessWidget {
                         blendMode: BlendMode.srcIn,
                         shaderCallback: (bounds) =>
                             AppGradients.accentHorizontal.createShader(bounds),
-                        child: const Icon(Icons.apps_rounded, size: 22),
+                        child: Icon(Icons.apps_rounded, size: 22),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,7 +54,7 @@ class EncryptHomePage extends StatelessWidget {
                             Text(
                               'Quick actions',
                               style: textTheme.titleLarge?.copyWith(
-                                color: Colors.white,
+                                color: context.encryptoColors.textPrimary,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0,
                               ),
@@ -65,7 +64,8 @@ class EncryptHomePage extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.bodySmall?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.58),
+                                color: context.encryptoColors.textPrimary
+                                    .withValues(alpha: 0.58),
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0,
                               ),
@@ -75,9 +75,9 @@ class EncryptHomePage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   _PrimaryWorkflowCard(onPressed: onEncryptTap),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   Row(
                     children: [
                       Expanded(
@@ -89,7 +89,7 @@ class EncryptHomePage extends StatelessWidget {
                           onPressed: onDecryptTap,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       Expanded(
                         child: _CompactWorkflowCard(
                           title: 'Stego',
@@ -101,9 +101,9 @@ class EncryptHomePage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   EncryptionSurfaceCard(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                    padding: EdgeInsets.fromLTRB(16, 14, 16, 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -111,34 +111,35 @@ class EncryptHomePage extends StatelessWidget {
                           children: [
                             Icon(
                               Icons.verified_user_rounded,
-                              color: Colors.white.withValues(alpha: 0.72),
+                              color: context.encryptoColors.textPrimary
+                                  .withValues(alpha: 0.72),
                               size: 18,
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text(
                               'Protection methods',
                               style: textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
+                                color: context.encryptoColors.textPrimary,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 14),
-                        const _MethodRow(
+                        SizedBox(height: 14),
+                        _MethodRow(
                           label: 'Biometric lock',
                           icon: Icons.fingerprint_rounded,
                           color: Color(0xFF60A5FA),
                         ),
-                        const SizedBox(height: 10),
-                        const _MethodRow(
+                        SizedBox(height: 10),
+                        _MethodRow(
                           label: 'Password key',
                           icon: Icons.password_rounded,
                           color: Color(0xFFA78BFA),
                         ),
-                        const SizedBox(height: 10),
-                        const _MethodRow(
+                        SizedBox(height: 10),
+                        _MethodRow(
                           label: 'Generated secure key',
                           icon: Icons.key_rounded,
                           color: Color(0xFF34D399),
@@ -146,7 +147,7 @@ class EncryptHomePage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                 ],
               ),
             ),
@@ -172,16 +173,18 @@ class _PrimaryWorkflowCard extends StatelessWidget {
         onTap: onPressed,
         borderRadius: BorderRadius.circular(24),
         child: Ink(
-          padding: const EdgeInsets.all(18),
+          padding: EdgeInsets.all(18),
           decoration: BoxDecoration(
-            gradient: AppGradients.card,
+            gradient: encryptoCardGradient(context),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+            border: Border.all(
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.14),
+            ),
             boxShadow: [
               BoxShadow(
                 color: AppColors.accent.withValues(alpha: 0.20),
                 blurRadius: 28,
-                offset: const Offset(0, 12),
+                offset: Offset(0, 12),
               ),
             ],
           ),
@@ -194,31 +197,33 @@ class _PrimaryWorkflowCard extends StatelessWidget {
                   Text(
                     'Encrypt file',
                     style: textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
+                      color: context.encryptoColors.textPrimary,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 0,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     'Lock files with AI keys and optional hidden cover data.',
                     style: textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.62),
+                      color: context.encryptoColors.textPrimary.withValues(
+                        alpha: 0.62,
+                      ),
                       fontWeight: FontWeight.w600,
                       height: 1.35,
                       letterSpacing: 0,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   Container(
                     height: 38,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    padding: EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
                       gradient: AppGradients.accentHorizontal,
                       borderRadius: BorderRadius.circular(19),
                       boxShadow: AppShadows.accent,
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
@@ -246,8 +251,8 @@ class _PrimaryWorkflowCard extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Center(child: _SecureIllustration()),
-                    const SizedBox(height: 12),
+                    Center(child: _SecureIllustration()),
+                    SizedBox(height: 12),
                     copy,
                   ],
                 );
@@ -255,8 +260,8 @@ class _PrimaryWorkflowCard extends StatelessWidget {
 
               return Row(
                 children: [
-                  const _SecureIllustration(),
-                  const SizedBox(width: 16),
+                  _SecureIllustration(),
+                  SizedBox(width: 16),
                   Expanded(child: copy),
                 ],
               );
@@ -294,11 +299,13 @@ class _CompactWorkflowCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Ink(
           height: 136,
-          padding: const EdgeInsets.all(14),
+          padding: EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.07),
+            color: context.encryptoColors.textPrimary.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            border: Border.all(
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.12),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,24 +320,26 @@ class _CompactWorkflowCard extends StatelessWidget {
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),
-              const Spacer(),
+              Spacer(),
               Text(
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
+                  color: context.encryptoColors.textPrimary,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0,
                 ),
               ),
-              const SizedBox(height: 3),
+              SizedBox(height: 3),
               Text(
                 subtitle,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.54),
+                  color: context.encryptoColors.textPrimary.withValues(
+                    alpha: 0.54,
+                  ),
                   fontWeight: FontWeight.w600,
                   height: 1.2,
                   letterSpacing: 0,
@@ -360,7 +369,7 @@ class _SecureIllustration extends StatelessWidget {
             left: 12,
             child: _GlowDot(
               size: 34,
-              color: Colors.white.withValues(alpha: 0.38),
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.38),
             ),
           ),
           Positioned(
@@ -380,7 +389,9 @@ class _SecureIllustration extends StatelessWidget {
                 width: 58,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.92),
+                  color: context.encryptoColors.textPrimary.withValues(
+                    alpha: 0.92,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -394,11 +405,7 @@ class _SecureIllustration extends StatelessWidget {
               borderRadius: BorderRadius.circular(28),
               boxShadow: AppShadows.accentGlow,
             ),
-            child: const Icon(
-              Icons.shield_rounded,
-              color: Colors.white,
-              size: 44,
-            ),
+            child: Icon(Icons.shield_rounded, color: Colors.white, size: 44),
           ),
           Positioned(
             top: 18,
@@ -429,11 +436,13 @@ class _MethodRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
+        color: context.encryptoColors.textPrimary.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        border: Border.all(
+          color: context.encryptoColors.textPrimary.withValues(alpha: 0.10),
+        ),
       ),
       child: Row(
         children: [
@@ -446,14 +455,16 @@ class _MethodRow extends StatelessWidget {
             ),
             child: Icon(icon, color: color, size: 16),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.86),
+                color: context.encryptoColors.textPrimary.withValues(
+                  alpha: 0.86,
+                ),
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0,
               ),

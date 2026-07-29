@@ -159,20 +159,12 @@ class _SplashPageState extends State<SplashPage>
                               ),
                             ),
                           ),
-                          // Logo container
-                          Container(
-                            width: 88,
-                            height: 88,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(26),
-                              gradient: AppGradients.accent,
-                              boxShadow: AppShadows.accentGlow,
-                            ),
-                            child: const Icon(
-                              Icons.shield_moon_rounded,
-                              color: Colors.white,
-                              size: 44,
-                            ),
+                          // Original Encrypto logo
+                          Image.asset(
+                            'assets/images/encrypto_logo.png',
+                            width: 112,
+                            height: 112,
+                            fit: BoxFit.contain,
                           ),
                         ],
                       ),

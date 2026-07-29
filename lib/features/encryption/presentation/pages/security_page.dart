@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
+import 'package:encrypto/features/encryption/presentation/widgets/encryption_state_message.dart';
 import 'package:encrypto/services/api_service.dart';
 import 'security_details_page.dart';
 import 'package:encrypto/services/session_service.dart';
@@ -81,14 +82,13 @@ class _SecurityPageState extends State<SecurityPage> {
     return Column(
       children: [
         EncryptoTopBar(
-          onProfilePressed: widget.onOpenProfile,
           onNotificationsPressed: widget.onOpenNotifications,
           onSettingsPressed: widget.onOpenSettings,
         ),
         Expanded(
           child: SingleChildScrollView(
             child: EncryptionContentContainer(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -98,9 +98,9 @@ class _SecurityPageState extends State<SecurityPage> {
                         blendMode: BlendMode.srcIn,
                         shaderCallback: (bounds) =>
                             AppGradients.accentHorizontal.createShader(bounds),
-                        child: const Icon(Icons.shield_outlined, size: 22),
+                        child: Icon(Icons.shield_outlined, size: 22),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,7 +108,7 @@ class _SecurityPageState extends State<SecurityPage> {
                             Text(
                               'Intruder Alert',
                               style: textTheme.titleLarge?.copyWith(
-                                color: Colors.white,
+                                color: context.encryptoColors.textPrimary,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0,
                               ),
@@ -116,7 +116,8 @@ class _SecurityPageState extends State<SecurityPage> {
                             Text(
                               'Review failed access attempts',
                               style: textTheme.bodySmall?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.58),
+                                color: context.encryptoColors.textPrimary
+                                    .withValues(alpha: 0.58),
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0,
                               ),
@@ -124,19 +125,19 @@ class _SecurityPageState extends State<SecurityPage> {
                           ],
                         ),
                       ),
-                      const _RiskBadge(),
+                      _RiskBadge(),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   EncryptionSurfaceCard(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            const _AlertIcon(),
-                            const SizedBox(width: 12),
+                            _AlertIcon(),
+                            SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,7 +145,7 @@ class _SecurityPageState extends State<SecurityPage> {
                                   Text(
                                     '${_incidents.length} attempts blocked',
                                     style: textTheme.titleMedium?.copyWith(
-                                      color: Colors.white,
+                                      color: context.encryptoColors.textPrimary,
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: 0,
                                     ),
@@ -164,48 +165,54 @@ class _SecurityPageState extends State<SecurityPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        const _SectionTitle('Intruder Photos'),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 16),
+                        _SectionTitle('Intruder Photos'),
+                        SizedBox(height: 12),
                         _IntruderPhotoStrip(incidents: _incidents),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          height: 48,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: AppGradients.accentHorizontal,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: AppShadows.accent,
-                            ),
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => SecurityDetailsPage(
-                                      incidents: _incidents,
+                        if (_incidents.isNotEmpty) ...[
+                          SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: AppGradients.accentHorizontal,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: AppShadows.accent,
+                              ),
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => SecurityDetailsPage(
+                                        incidents: _incidents,
+                                      ),
                                     ),
+                                  );
+                                },
+                                icon: Icon(Icons.visibility_outlined),
+                                label: Text('More Details'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: Colors.white,
+                                  shadowColor: Colors.transparent,
+                                  textStyle: textTheme.labelLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
                                   ),
-                                );
-                              },
-                              icon: const Icon(Icons.visibility_outlined),
-                              label: const Text('More Details'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: Colors.white,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  const _SectionTitle('Failed Login Attempts'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 18),
+                  _SectionTitle('Failed Login Attempts'),
+                  SizedBox(height: 12),
                   _LoginAttemptList(incidents: _incidents),
                 ],
               ),
@@ -223,7 +230,7 @@ class _RiskBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(999),
@@ -254,11 +261,7 @@ class _AlertIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         boxShadow: AppShadows.accent,
       ),
-      child: const Icon(
-        Icons.gpp_maybe_outlined,
-        color: Colors.white,
-        size: 24,
-      ),
+      child: Icon(Icons.gpp_maybe_outlined, color: Colors.white, size: 24),
     );
   }
 }
@@ -273,7 +276,7 @@ class _SectionTitle extends StatelessWidget {
     return Text(
       label,
       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-        color: Colors.white,
+        color: context.encryptoColors.textPrimary,
         fontWeight: FontWeight.w800,
         letterSpacing: 0,
       ),
@@ -288,15 +291,26 @@ class _IntruderPhotoStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (incidents.isEmpty) {
+      return EncryptionStateMessage(
+        icon: Icons.no_photography_outlined,
+        title: 'No intruder photos',
+        message: 'Captured photos from blocked attempts will appear here.',
+        compact: true,
+        showSurface: false,
+        accentColor: AppColors.success,
+      );
+    }
+
     return SizedBox(
       height: 148,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
+        physics: BouncingScrollPhysics(),
         children: [
           for (var index = 0; index < incidents.length; index++) ...[
             _IntruderNetworkPhotoCard(incident: incidents[index]),
-            if (index != incidents.length - 1) const SizedBox(width: 14),
+            if (index != incidents.length - 1) SizedBox(width: 14),
           ],
         ],
       ),
@@ -325,12 +339,14 @@ class _IntruderPhotoCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: gradient,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        border: Border.all(
+          color: context.encryptoColors.textPrimary.withValues(alpha: 0.14),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
+            color: context.encryptoColors.shadow.withValues(alpha: 0.22),
             blurRadius: 18,
-            offset: const Offset(0, 8),
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -341,7 +357,7 @@ class _IntruderPhotoCard extends StatelessWidget {
             bottom: -16,
             child: Icon(
               icon,
-              color: Colors.white.withValues(alpha: 0.48),
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.48),
               size: 136,
             ),
           ),
@@ -349,16 +365,16 @@ class _IntruderPhotoCard extends StatelessWidget {
             left: 14,
             top: 14,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.34),
+                color: context.encryptoColors.shadow.withValues(alpha: 0.34),
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(color: accent.withValues(alpha: 0.42)),
               ),
               child: Text(
                 initials,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white,
+                  color: context.encryptoColors.textPrimary,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0,
                 ),
@@ -377,7 +393,7 @@ class _IntruderPhotoCard extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withValues(alpha: 0.62),
+                    context.encryptoColors.shadow.withValues(alpha: 0.62),
                   ],
                 ),
               ),
@@ -396,11 +412,11 @@ class _IntruderPhotoCard extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: 6),
                 Text(
                   'Captured',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white,
+                    color: context.encryptoColors.textPrimary,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0,
                   ),
@@ -430,20 +446,25 @@ class _IntruderNetworkPhotoCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        border: Border.all(
+          color: context.encryptoColors.textPrimary.withValues(alpha: 0.14),
+        ),
       ),
       child: FutureBuilder<String?>(
         future: SessionService.getAccessToken(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator());
           }
 
           final token = snapshot.data;
 
           if (token == null || token.isEmpty) {
-            return const Center(
-              child: Icon(Icons.broken_image_outlined, color: Colors.white54),
+            return Center(
+              child: Icon(
+                Icons.broken_image_outlined,
+                color: context.encryptoColors.textSecondary,
+              ),
             );
           }
 
@@ -452,8 +473,11 @@ class _IntruderNetworkPhotoCard extends StatelessWidget {
             headers: {'Authorization': 'Bearer $token'},
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
-              return const Center(
-                child: Icon(Icons.broken_image_outlined, color: Colors.white54),
+              return Center(
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  color: context.encryptoColors.textSecondary,
+                ),
               );
             },
           );
@@ -470,6 +494,16 @@ class _LoginAttemptList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (incidents.isEmpty) {
+      return EncryptionStateMessage(
+        icon: Icons.verified_user_outlined,
+        title: 'No failed login attempts',
+        message: 'Your vault has no blocked access attempts.',
+        compact: true,
+        accentColor: AppColors.success,
+      );
+    }
+
     final attempts = incidents.map((incident) {
       final incidentType = (incident['incident_type'] ?? '')
           .toString()
@@ -499,7 +533,7 @@ class _LoginAttemptList extends StatelessWidget {
       children: [
         for (var index = 0; index < attempts.length; index++) ...[
           _LoginAttemptTile(attempt: attempts[index]),
-          if (index != attempts.length - 1) const SizedBox(height: 10),
+          if (index != attempts.length - 1) SizedBox(height: 10),
         ],
       ],
     );
@@ -507,11 +541,7 @@ class _LoginAttemptList extends StatelessWidget {
 }
 
 class _LoginAttempt {
-  const _LoginAttempt({
-    required this.date,
-    required this.time,
-    required this.method,
-  });
+  _LoginAttempt({required this.date, required this.time, required this.method});
 
   final String date;
   final String time;
@@ -532,12 +562,14 @@ class _LoginAttemptTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 58),
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      constraints: BoxConstraints(minHeight: 58),
+      padding: EdgeInsets.fromLTRB(14, 10, 14, 10),
       decoration: BoxDecoration(
-        gradient: AppGradients.card,
+        gradient: encryptoCardGradient(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(
+          color: context.encryptoColors.textPrimary.withValues(alpha: 0.12),
+        ),
       ),
       child: Row(
         children: [
@@ -556,7 +588,7 @@ class _LoginAttemptTile extends StatelessWidget {
               size: 18,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -567,19 +599,21 @@ class _LoginAttemptTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
+                    color: context.encryptoColors.textPrimary,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0,
                     height: 1.1,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   attempt.time,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.54),
+                    color: context.encryptoColors.textPrimary.withValues(
+                      alpha: 0.54,
+                    ),
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0,
                     height: 1.1,
@@ -604,8 +638,8 @@ class _MethodBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 78),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      constraints: BoxConstraints(minWidth: 78),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 5),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.16),

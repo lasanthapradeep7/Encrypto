@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
+import 'package:encrypto/core/theme/theme_controller.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
 import 'package:encrypto/features/auth/presentation/pages/login_page.dart';
+import 'package:encrypto/features/encryption/presentation/widgets/profile_dialogs.dart';
 import 'package:encrypto/services/session_service.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -20,82 +22,98 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _cloudSync = false;
   bool _lockScreen = true;
 
+  Future<void> _setDarkMode(bool enabled) async {
+    await ThemeController.instance.setDarkMode(enabled);
+    if (!mounted) return;
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          enabled ? 'Dark mode is now on.' : 'Light mode is now on.',
+        ),
+      ),
+    );
+  }
+
   void _showComingSoon(String label) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$label coming soon')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$label isn’t available yet. We’re working on it.'),
+      ),
+    );
+  }
+
+  Future<void> _changePassword() async {
+    final changed = await showChangePasswordDialog(context);
+    if (changed && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Password changed successfully.')));
+    }
   }
 
   Future<void> _logout() async {
-  final shouldLogout = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) {
-      return AlertDialog(
-        backgroundColor: AppColors.backgroundStart,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: Colors.white.withValues(alpha: 0.18),
-          ),
-        ),
-        icon: const Icon(
-          Icons.logout_rounded,
-          color: AppColors.error,
-          size: 44,
-        ),
-        title: const Text(
-          'Logout',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to logout from Encrypto?',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.72),
-            height: 1.4,
-          ),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop(false);
-            },
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop(true);
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.error,
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: context.encryptoColors.background,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.18),
             ),
-            child: const Text('Logout'),
           ),
-        ],
-      );
-    },
-  );
+          icon: Icon(Icons.logout_rounded, color: AppColors.error, size: 44),
+          title: Text(
+            'Sign out?',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.encryptoColors.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          content: Text(
+            'You’ll need to sign in again to access your encrypted workspace.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.72),
+              height: 1.4,
+            ),
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+              child: Text('Sign out'),
+            ),
+          ],
+        );
+      },
+    );
 
-  if (shouldLogout != true || !mounted) {
-    return;
+    if (shouldLogout != true || !mounted) {
+      return;
+    }
+
+    await SessionService.clearSession();
+
+    if (!mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => LoginPage()),
+      (route) => false,
+    );
   }
-
-  await SessionService.clearSession();
-
-  if (!mounted) return;
-
-  Navigator.of(context).pushAndRemoveUntil(
-    MaterialPageRoute<void>(
-      builder: (_) => const LoginPage(),
-    ),
-    (route) => false,
-  );
-}
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +128,7 @@ class _SettingsPageState extends State<SettingsPage> {
         Expanded(
           child: SingleChildScrollView(
             child: EncryptionContentContainer(
-              padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
+              padding: EdgeInsets.fromLTRB(28, 28, 28, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -118,17 +136,27 @@ class _SettingsPageState extends State<SettingsPage> {
                     'Settings',
                     textAlign: TextAlign.center,
                     style: textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
+                      color: context.encryptoColors.textPrimary,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0,
                     ),
                   ),
-                  const SizedBox(height: 34),
+                  SizedBox(height: 34),
+                  _SettingsGroup(
+                    children: [
+                      _SettingsSwitchRow(
+                        label: 'Dark mode',
+                        value: ThemeController.instance.isDark,
+                        onChanged: _setDarkMode,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 38),
                   _SettingsGroup(
                     children: [
                       _SettingsActionRow(
                         label: 'Change password',
-                        onTap: () => _showComingSoon('Change password'),
+                        onTap: _changePassword,
                       ),
                       _SettingsSwitchRow(
                         label: 'Biometric authentication',
@@ -138,13 +166,13 @@ class _SettingsPageState extends State<SettingsPage> {
                         },
                       ),
                       _SettingsActionRow(
-                        label: 'Logout',
+                        label: 'Sign out',
                         destructive: true,
                         onTap: _logout,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 38),
+                  SizedBox(height: 38),
                   _SettingsGroup(
                     children: [
                       _SettingsActionRow(
@@ -160,7 +188,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 38),
+                  SizedBox(height: 38),
                   _SettingsGroup(
                     children: [
                       _SettingsSwitchRow(
@@ -180,7 +208,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 38),
+                  SizedBox(height: 38),
                   _SettingsGroup(
                     children: [
                       _SettingsSwitchRow(
@@ -216,18 +244,17 @@ class _SettingsGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: AppGradients.card,
-        color: Colors.white.withValues(alpha: 0.06),
+        gradient: encryptoCardGradient(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.10),
+          color: context.encryptoColors.textPrimary.withValues(alpha: 0.10),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.20),
+            color: context.encryptoColors.shadow.withValues(alpha: 0.20),
             blurRadius: 18,
-            offset: const Offset(0, 8),
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -237,7 +264,7 @@ class _SettingsGroup extends StatelessWidget {
           children: [
             for (var index = 0; index < children.length; index++) ...[
               children[index],
-              if (index != children.length - 1) const _SettingsDivider(),
+              if (index != children.length - 1) _SettingsDivider(),
             ],
           ],
         ),
@@ -263,7 +290,7 @@ class _SettingsActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = destructive
         ? AppColors.error.withValues(alpha: 0.92)
-        : Colors.white.withValues(alpha: 0.92);
+        : context.encryptoColors.textPrimary.withValues(alpha: 0.92);
 
     return _SettingsRowShell(
       onTap: onTap,
@@ -274,18 +301,20 @@ class _SettingsActionRow extends StatelessWidget {
             Text(
               value,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white.withValues(alpha: 0.48),
+                color: context.encryptoColors.textPrimary.withValues(
+                  alpha: 0.48,
+                ),
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0,
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
           ],
           Icon(
             destructive ? Icons.logout_rounded : Icons.chevron_right_rounded,
             color: destructive
                 ? AppColors.error.withValues(alpha: 0.82)
-                : Colors.white.withValues(alpha: 0.46),
+                : context.encryptoColors.textPrimary.withValues(alpha: 0.46),
             size: destructive ? 20 : 24,
           ),
         ],
@@ -317,10 +346,14 @@ class _SettingsSwitchRow extends StatelessWidget {
             onChanged: onChanged,
             activeThumbColor: Colors.white,
             activeTrackColor: AppColors.accent,
-            inactiveThumbColor: Colors.white.withValues(alpha: 0.80),
-            inactiveTrackColor: Colors.white.withValues(alpha: 0.15),
+            inactiveThumbColor: context.encryptoColors.textPrimary.withValues(
+              alpha: 0.80,
+            ),
+            inactiveTrackColor: context.encryptoColors.textPrimary.withValues(
+              alpha: 0.15,
+            ),
             trackOutlineColor: WidgetStatePropertyAll(
-              Colors.white.withValues(alpha: 0.14),
+              context.encryptoColors.textPrimary.withValues(alpha: 0.14),
             ),
           ),
         ],
@@ -342,9 +375,9 @@ class _SettingsRowShell extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 56),
+          constraints: BoxConstraints(minHeight: 56),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
+            padding: EdgeInsets.symmetric(horizontal: 22, vertical: 6),
             child: child,
           ),
         ),
@@ -366,7 +399,8 @@ class _SettingsLabel extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-        color: color ?? Colors.white.withValues(alpha: 0.92),
+        color:
+            color ?? context.encryptoColors.textPrimary.withValues(alpha: 0.92),
         fontWeight: FontWeight.w700,
         letterSpacing: 0,
       ),
@@ -383,7 +417,7 @@ class _SettingsDivider extends StatelessWidget {
       height: 1,
       thickness: 1,
       indent: 22,
-      color: Colors.white.withValues(alpha: 0.20),
+      color: context.encryptoColors.textPrimary.withValues(alpha: 0.20),
     );
   }
 }

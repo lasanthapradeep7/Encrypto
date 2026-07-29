@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
 
 class DecryptHomePage extends StatelessWidget {
@@ -21,7 +22,7 @@ class DecryptHomePage extends StatelessWidget {
         EncryptoTopBar(showBackButton: true, onBackPressed: onBackPressed),
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
+            padding: EdgeInsets.fromLTRB(24, 10, 24, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -29,47 +30,57 @@ class DecryptHomePage extends StatelessWidget {
                   'Decrypt files',
                   textAlign: TextAlign.center,
                   style: textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
+                    color: context.encryptoColors.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 26),
+                SizedBox(height: 26),
                 Container(
                   height: 190,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.06),
+                    color: context.encryptoColors.textPrimary.withValues(
+                      alpha: 0.06,
+                    ),
                     borderRadius: BorderRadius.circular(28),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.12),
+                      color: context.encryptoColors.textPrimary.withValues(
+                        alpha: 0.12,
+                      ),
                     ),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Icon(
                       Icons.lock_open_rounded,
                       size: 84,
-                      color: Colors.white,
+                      color: context.encryptoColors.textPrimary,
                     ),
                   ),
                 ),
-                const SizedBox(height: 22),
+                SizedBox(height: 22),
                 Text(
                   'Upload an encrypted file and restore it securely.',
                   textAlign: TextAlign.center,
                   style: textTheme.bodyLarge?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.84),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.10),
+                    color: context.encryptoColors.textPrimary.withValues(
+                      alpha: 0.84,
                     ),
                   ),
-                  child: const Column(
+                ),
+                SizedBox(height: 18),
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: context.encryptoColors.textPrimary.withValues(
+                      alpha: 0.06,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: context.encryptoColors.textPrimary.withValues(
+                        alpha: 0.10,
+                      ),
+                    ),
+                  ),
+                  child: Column(
                     children: [
                       _MiniRow(label: 'Encrypted file'),
                       SizedBox(height: 12),
@@ -77,14 +88,14 @@ class DecryptHomePage extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 ElevatedButton(
                   onPressed: onOpenDecryptFlow,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
                   ),
-                  child: const Text('Decrypt Now'),
+                  child: Text('Decrypt Now'),
                 ),
               ],
             ),
@@ -104,13 +115,13 @@ class _MiniRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(Icons.upload_file_rounded, color: Colors.white),
-        const SizedBox(width: 10),
+        Icon(Icons.upload_file_rounded, color: Colors.white),
+        SizedBox(width: 10),
         Expanded(
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Colors.white,
+              color: context.encryptoColors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
