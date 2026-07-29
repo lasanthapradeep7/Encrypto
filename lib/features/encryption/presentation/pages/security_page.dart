@@ -98,7 +98,7 @@ class _SecurityPageState extends State<SecurityPage> {
                         blendMode: BlendMode.srcIn,
                         shaderCallback: (bounds) =>
                             AppGradients.accentHorizontal.createShader(bounds),
-                        child: Icon(Icons.shield_outlined, size: 22),
+                        child: Icon(Icons.person_off_outlined, size: 22),
                       ),
                       SizedBox(width: 10),
                       Expanded(

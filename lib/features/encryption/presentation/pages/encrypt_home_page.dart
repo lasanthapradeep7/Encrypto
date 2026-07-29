@@ -94,7 +94,7 @@ class EncryptHomePage extends StatelessWidget {
                         child: _CompactWorkflowCard(
                           title: 'Stego',
                           subtitle: 'Hide data in images',
-                          icon: Icons.auto_awesome_rounded,
+                          icon: Icons.hide_image_rounded,
                           color: AppColors.warning,
                           onPressed: onSteganographyTap,
                         ),
@@ -405,16 +405,7 @@ class _SecureIllustration extends StatelessWidget {
               borderRadius: BorderRadius.circular(28),
               boxShadow: AppShadows.accentGlow,
             ),
-            child: Icon(Icons.shield_rounded, color: Colors.white, size: 44),
-          ),
-          Positioned(
-            top: 18,
-            right: 18,
-            child: Icon(
-              Icons.auto_awesome_rounded,
-              color: Colors.white.withValues(alpha: 0.82),
-              size: 18,
-            ),
+            child: Icon(Icons.lock_rounded, color: Colors.white, size: 44),
           ),
         ],
       ),

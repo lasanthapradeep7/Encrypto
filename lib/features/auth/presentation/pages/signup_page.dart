@@ -323,7 +323,7 @@ class _SignUpPageState extends State<SignUpPage>
                               const SizedBox(height: 12),
                               GradientButton(
                                 label: 'Create secure account',
-                                icon: Icons.shield_rounded,
+                                icon: Icons.person_add_alt_1_rounded,
                                 onPressed: _agreeTerms
                                     ? () async {
                                         if (!(_formKey.currentState

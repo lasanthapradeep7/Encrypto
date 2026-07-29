@@ -997,7 +997,7 @@ class _EncryptSetupContent extends StatelessWidget {
           TextField(
             controller: passwordController,
             obscureText: true,
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: context.encryptoColors.textPrimary),
             decoration: _secureInputDecoration(
               context: context,
               hint: protectionMethod == ProtectionMethod.hybrid
@@ -1012,7 +1012,7 @@ class _EncryptSetupContent extends StatelessWidget {
           TextField(
             controller: confirmPasswordController,
             obscureText: true,
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: context.encryptoColors.textPrimary),
             decoration: _secureInputDecoration(
               context: context,
               hint: protectionMethod == ProtectionMethod.hybrid
@@ -1233,7 +1233,9 @@ class _DecryptSetupContentState extends State<_DecryptSetupContent> {
           TextField(
             controller: widget.keyController,
             obscureText: _obscurePassword,
-            style: textTheme.bodyLarge?.copyWith(color: Colors.white),
+            style: textTheme.bodyLarge?.copyWith(
+              color: context.encryptoColors.textPrimary,
+            ),
             decoration: InputDecoration(
               hintText: widget.protectionMethod == ProtectionMethod.hybrid
                   ? 'Enter hybrid password'

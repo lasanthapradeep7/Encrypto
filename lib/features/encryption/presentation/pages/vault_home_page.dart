@@ -155,16 +155,7 @@ class _VaultHomePageState extends State<VaultHomePage> {
                       letterSpacing: -0.5,
                     ),
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    'A quick view of your protected data and activity.',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: context.encryptoColors.textPrimary.withValues(
-                        alpha: 0.62,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 18),
+                  SizedBox(height: 16),
                   _SecurityHeroCard(
                     protectedFiles: _protectedSessions,
                     totalFiles: _encryptedFiles,
@@ -324,7 +315,7 @@ class _SecurityHeroCard extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(Icons.shield_rounded, color: Colors.white),
+                child: Icon(Icons.lock_rounded, color: Colors.white),
               ),
               SizedBox(width: 12),
               Expanded(
