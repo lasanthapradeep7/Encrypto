@@ -1,6 +1,7 @@
 // ignore_for_file: unused_field
 
 import 'package:flutter/material.dart';
+import 'package:encrypto/core/network/network_error_message.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
@@ -81,7 +82,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
       setState(() {
         _loadingNotifications = false;
-        _notificationError = 'Unable to load notifications';
+        _notificationError = NetworkErrorMessage.forError(
+          error,
+          fallback: 'Unable to load notifications. Please try again.',
+        );
       });
     }
   }
@@ -211,7 +215,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     EncryptionStateMessage(
                       icon: Icons.cloud_off_rounded,
                       title: 'Couldn’t load notifications',
-                      message: 'Check your connection and try again.',
+                      message: _notificationError!,
                       actionLabel: 'Try again',
                       onAction: _loadNotifications,
                     )

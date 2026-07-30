@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:encrypto/core/network/network_error_message.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/auth/presentation/pages/login_page.dart';
@@ -122,10 +123,11 @@ class _SignUpPageState extends State<SignUpPage>
       debugPrint('REGISTRATION REQUEST FAILED: $error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Unable to connect. Check your connection and try again.',
-            ),
+          SnackBar(
+            content: Text(NetworkErrorMessage.forError(
+              error,
+              fallback: 'Unable to create your account right now. Please try again.',
+            )),
           ),
         );
       }

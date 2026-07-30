@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:encrypto/core/network/network_error_message.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
@@ -36,6 +37,7 @@ class _VaultHomePageState extends State<VaultHomePage> {
   String _searchQuery = '';
   bool _isLoading = true;
   bool _isRefreshing = false;
+  String? _dashboardError;
   DateTime? _lastUpdated;
   Timer? _dashboardRefreshTimer;
 
@@ -116,6 +118,7 @@ class _VaultHomePageState extends State<VaultHomePage> {
         _securityIncidents = securityIncidents;
         _recentFiles = recentFiles;
         _lastUpdated = DateTime.now();
+        _dashboardError = null;
         _isLoading = false;
         _isRefreshing = false;
       });
@@ -125,6 +128,10 @@ class _VaultHomePageState extends State<VaultHomePage> {
         setState(() {
           _isLoading = false;
           _isRefreshing = false;
+          _dashboardError = NetworkErrorMessage.forError(
+            error,
+            fallback: 'Unable to load your vault. Please try again.',
+          );
         });
       }
     }
@@ -203,6 +210,15 @@ class _VaultHomePageState extends State<VaultHomePage> {
                   SizedBox(height: 10),
                   if (_isLoading)
                     _DashboardLoadingState()
+                  else if (_dashboardError != null && _lastUpdated == null)
+                    EncryptionStateMessage(
+                      icon: Icons.cloud_off_rounded,
+                      title: 'Couldn’t load your vault',
+                      message: _dashboardError!,
+                      actionLabel: 'Try again',
+                      onAction: _loadDashboard,
+                      compact: true,
+                    )
                   else
                     _MetricGrid(
                       encryptedFiles: _encryptedFiles,

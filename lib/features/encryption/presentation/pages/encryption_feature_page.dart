@@ -7,6 +7,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:encrypto/core/network/network_error_message.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -279,7 +280,10 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('AI analysis failed: $error')));
+      ).showSnackBar(SnackBar(content: Text(NetworkErrorMessage.forError(
+        error,
+        fallback: 'AI analysis failed. Please try again.',
+      ))));
     }
   }
 
@@ -591,7 +595,10 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Workflow failed: $e')));
+        ).showSnackBar(SnackBar(content: Text(NetworkErrorMessage.forError(
+          e,
+          fallback: 'The workflow could not be completed. Please try again.',
+        ))));
 
         setState(() {
           _stage = _WorkflowStage.setup;
@@ -1073,11 +1080,15 @@ class _EncryptSetupContent extends StatelessWidget {
                 ),
                 Text(
                   'Confidence : ${aiAnalysis!['confidence'] ?? '-'}%',
-                  style: TextStyle(color: Colors.white),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: context.encryptoColors.textSecondary,
+                  ),
                 ),
                 Text(
                   'Risk Score : ${aiAnalysis!['risk_score']}',
-                  style: TextStyle(color: Colors.white),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: context.encryptoColors.textSecondary,
+                  ),
                 ),
                 SizedBox(height: 12),
                 Text(
@@ -1741,10 +1752,11 @@ class _SuccessViewState extends State<_SuccessView> {
                   icon: Icon(Icons.download_rounded),
                   label: Text('Download'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
+                    foregroundColor: context.encryptoColors.textPrimary
+                        .withValues(alpha: 0.88),
                     side: BorderSide(
                       color: context.encryptoColors.textPrimary.withValues(
-                        alpha: 0.3,
+                        alpha: 0.35,
                       ),
                     ),
                     shape: RoundedRectangleBorder(

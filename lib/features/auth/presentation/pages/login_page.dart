@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:encrypto/core/network/network_error_message.dart';
 import 'package:local_auth/local_auth.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
@@ -378,9 +379,10 @@ class _LoginPageState extends State<LoginPage>
     } catch (error) {
       debugPrint('LOGIN REQUEST FAILED: $error');
       if (mounted) {
-        _showAuthMessage(
-          'Unable to connect. Check your connection and try again.',
-        );
+        _showAuthMessage(NetworkErrorMessage.forError(
+          error,
+          fallback: 'Unable to log in right now. Please try again.',
+        ));
       }
     } finally {
       if (mounted) {

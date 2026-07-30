@@ -3,6 +3,7 @@
 // ignore_for_file: unused_element
 
 import 'package:flutter/material.dart';
+import 'package:encrypto/core/network/network_error_message.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
@@ -69,7 +70,10 @@ class _SecurityPageState extends State<SecurityPage> {
       if (!mounted) return;
 
       setState(() {
-        _error = error.toString();
+        _error = NetworkErrorMessage.forError(
+          error,
+          fallback: 'Unable to load security activity. Please try again.',
+        );
         _loading = false;
       });
     }
