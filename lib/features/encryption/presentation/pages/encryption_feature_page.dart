@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:encrypto/core/network/network_error_message.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
@@ -681,6 +683,67 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
     }
   }
 
+  Future<void> _shareProcessedFile({required String type}) async {
+    try {
+      List<int>? fileBytes;
+      String fileName;
+
+      if (_activeMode == EncryptionMode.steganography) {
+        final stegoFileName = _stegoDownloadFileName;
+        if (stegoFileName == null) {
+          throw Exception('No steganography file is available to share.');
+        }
+        fileBytes = await ApiService.downloadStegoFile(stegoFileName);
+        fileName = stegoFileName.split(RegExp(r'[/\\]')).last;
+      } else {
+        final processedFileId = _processedFileId;
+        if (processedFileId == null) {
+          throw Exception('No processed file is available to share.');
+        }
+        fileBytes = await ApiService.downloadFile(processedFileId, type);
+        final originalName = _selectedFileName ?? 'processed_file';
+        fileName = type == 'encrypted'
+            ? 'enc_$originalName'
+            : 'dec_$originalName';
+      }
+
+      if (fileBytes == null) {
+        throw Exception('The processed file could not be downloaded.');
+      }
+
+      final shareDirectory = await getTemporaryDirectory();
+      final shareFile = File(
+        '${shareDirectory.path}${Platform.pathSeparator}$fileName',
+      );
+      await shareFile.writeAsBytes(fileBytes, flush: true);
+
+      if (!mounted) return;
+
+      final box = context.findRenderObject() as RenderBox?;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(shareFile.path)],
+          subject: 'Shared securely with Encrypto',
+          sharePositionOrigin: box == null
+              ? null
+              : box.localToGlobal(Offset.zero) & box.size,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            NetworkErrorMessage.forError(
+              error,
+              fallback: 'The file could not be shared. Please try again.',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   void _cancelWorkflow() {
     _completionTimer?.cancel();
     _completionTimer = null;
@@ -783,6 +846,13 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
                 onRepeatPressed: _resetFlow,
                 generatedKey: _generatedKey,
                 onDownload: () => _downloadAndSaveFile(
+                  type: _activeMode == EncryptionMode.encrypt
+                      ? 'encrypted'
+                      : _activeMode == EncryptionMode.decrypt
+                      ? 'decrypted'
+                      : 'stego',
+                ),
+                onShare: () => _shareProcessedFile(
                   type: _activeMode == EncryptionMode.encrypt
                       ? 'encrypted'
                       : _activeMode == EncryptionMode.decrypt
@@ -1746,19 +1816,31 @@ class _SuccessView extends StatefulWidget {
     required this.onRepeatPressed,
     this.generatedKey,
     required this.onDownload,
+    required this.onShare,
   });
 
   final EncryptionMode mode;
   final VoidCallback onRepeatPressed;
   final String? generatedKey;
   final VoidCallback onDownload;
+  final Future<void> Function() onShare;
 
   @override
   State<_SuccessView> createState() => _SuccessViewState();
 }
 
 class _SuccessViewState extends State<_SuccessView> {
-  bool _alwaysUpload = true;
+  bool _isSharing = false;
+
+  Future<void> _shareFile() async {
+    if (_isSharing) return;
+    setState(() => _isSharing = true);
+    try {
+      await widget.onShare();
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1868,17 +1950,12 @@ class _SuccessViewState extends State<_SuccessView> {
               ),
               SizedBox(height: 14),
               _GradientCTAButton(
-                label: 'Share File',
-                icon: Icons.share_rounded,
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Share option is not configured. Use Download to save the file.',
-                      ),
-                    ),
-                  );
-                },
+                label: _isSharing ? 'Preparing to share...' : 'Share File',
+                icon: _isSharing
+                    ? Icons.hourglass_top_rounded
+                    : Icons.share_rounded,
+                gradient: AppGradients.share,
+                onPressed: _isSharing ? null : _shareFile,
               ),
               SizedBox(height: 10),
               SizedBox(
@@ -1910,52 +1987,22 @@ class _SuccessViewState extends State<_SuccessView> {
               ),
               SizedBox(height: 10),
               _GradientCTAButton(
-                label: 'Upload to Cloud',
-                icon: Icons.cloud_upload_rounded,
-                gradient: AppGradients.success,
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'File is already securely saved on the server.',
-                      ),
-                    ),
-                  );
-                },
+                label: _isSharing ? 'Preparing to share...' : 'Share File',
+                icon: _isSharing
+                    ? Icons.hourglass_top_rounded
+                    : Icons.share_rounded,
+                gradient: AppGradients.share,
+                onPressed: _isSharing ? null : _shareFile,
               ),
               SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Checkbox(
-                    value: _alwaysUpload,
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() => _alwaysUpload = value);
-                    },
-                    fillColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return AppColors.accent;
-                      }
-                      return context.encryptoColors.textPrimary.withValues(
-                        alpha: 0.1,
-                      );
-                    }),
-                    side: BorderSide(
-                      color: context.encryptoColors.textPrimary.withValues(
-                        alpha: 0.3,
-                      ),
-                    ),
+              Text(
+                'Choose an app or nearby device to share securely.',
+                textAlign: TextAlign.center,
+                style: textTheme.bodySmall?.copyWith(
+                  color: context.encryptoColors.textPrimary.withValues(
+                    alpha: 0.62,
                   ),
-                  Text(
-                    'Always upload to cloud',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: context.encryptoColors.textPrimary.withValues(
-                        alpha: 0.8,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
               SizedBox(height: 10),
               SizedBox(

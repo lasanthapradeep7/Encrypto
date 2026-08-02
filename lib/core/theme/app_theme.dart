@@ -182,6 +182,12 @@ class AppGradients {
     colors: [Color(0xFF34D399), Color(0xFF059669)],
   );
 
+  static const LinearGradient share = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [Color(0xFF60A5FA), Color(0xFF3B82F6), Color(0xFF2563EB)],
+  );
+
   static const LinearGradient processing = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
