@@ -49,4 +49,58 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Change password'), findsOneWidget);
   });
+
+  testWidgets('system back returns notifications and settings to prior page', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(buildShell());
+
+    await tester.tap(find.text('Encrypt'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Notifications'));
+    await tester.pumpAndSettle();
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Encrypt files'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Encrypt files'), findsOneWidget);
+  });
+
+  testWidgets('system back returns workflow to its prior page', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(buildShell());
+
+    await tester.tap(find.text('Encrypt'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Decrypt'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Decrypt File'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Encrypt files'), findsOneWidget);
+  });
+
+  testWidgets('system back returns a primary tab to vault home', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(buildShell());
+
+    await tester.tap(find.text('Security'));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Secure Vault'), findsOneWidget);
+  });
 }

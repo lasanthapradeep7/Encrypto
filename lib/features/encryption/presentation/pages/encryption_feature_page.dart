@@ -89,6 +89,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
   String _fileSizeLabel = '0.0 KB';
   int? _processedFileId;
   Map<String, dynamic>? _aiAnalysis;
+  bool _isAiAnalysisLoading = false;
 
   @override
   void initState() {
@@ -134,6 +135,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
       _keyController.clear();
       _processedFileId = null;
       _aiAnalysis = null;
+      _isAiAnalysisLoading = false;
       _protectionMethod = ProtectionMethod.biometric;
 
       _hybridPasswordController.clear();
@@ -220,9 +222,10 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
     try {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('AI analyzing selected file...')));
+      setState(() {
+        _isAiAnalysisLoading = true;
+        _aiAnalysis = null;
+      });
 
       final uploadResult = await ApiService.uploadFile(selectedPath);
 
@@ -274,9 +277,14 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
       setState(() {
         _processedFileId = fileId;
         _aiAnalysis = aiResult['body'] as Map<String, dynamic>;
+        _isAiAnalysisLoading = false;
       });
     } catch (error) {
       if (!mounted) return;
+
+      setState(() {
+        _isAiAnalysisLoading = false;
+      });
 
       ScaffoldMessenger.of(
         context,
@@ -725,6 +733,7 @@ class _EncryptionFeaturePageState extends State<EncryptionFeaturePage> {
                 stegoExtractImageName: _stegoExtractImageName,
                 keyController: _keyController,
                 aiAnalysis: _aiAnalysis,
+                isAiAnalysisLoading: _isAiAnalysisLoading,
                 protectionMethod: _protectionMethod,
                 onProtectionMethodChanged: (method) {
                   setState(() {
@@ -808,6 +817,7 @@ class _SetupView extends StatelessWidget {
     required this.onPickStegoFile,
     required this.onPickStegoExtract,
     required this.aiAnalysis,
+    required this.isAiAnalysisLoading,
     required this.protectionMethod,
     required this.onProtectionMethodChanged,
     required this.hybridPasswordController,
@@ -829,6 +839,7 @@ class _SetupView extends StatelessWidget {
   final VoidCallback onPickStegoFile;
   final VoidCallback onPickStegoExtract;
   final Map<String, dynamic>? aiAnalysis;
+  final bool isAiAnalysisLoading;
   final ProtectionMethod protectionMethod;
   final ValueChanged<ProtectionMethod> onProtectionMethodChanged;
   final TextEditingController hybridPasswordController;
@@ -870,6 +881,7 @@ class _SetupView extends StatelessWidget {
                 selectedFileName: selectedFileName,
                 onPickFile: onPickFile,
                 aiAnalysis: aiAnalysis,
+                isAiAnalysisLoading: isAiAnalysisLoading,
                 protectionMethod: protectionMethod,
                 onProtectionMethodChanged: onProtectionMethodChanged,
                 passwordController: hybridPasswordController,
@@ -911,6 +923,7 @@ class _EncryptSetupContent extends StatelessWidget {
     required this.selectedFileName,
     required this.onPickFile,
     required this.aiAnalysis,
+    required this.isAiAnalysisLoading,
     required this.protectionMethod,
     required this.onProtectionMethodChanged,
     required this.passwordController,
@@ -921,6 +934,7 @@ class _EncryptSetupContent extends StatelessWidget {
   final String? selectedFileName;
   final VoidCallback onPickFile;
   final Map<String, dynamic>? aiAnalysis;
+  final bool isAiAnalysisLoading;
 
   final ProtectionMethod protectionMethod;
   final ValueChanged<ProtectionMethod> onProtectionMethodChanged;
@@ -1041,8 +1055,11 @@ class _EncryptSetupContent extends StatelessWidget {
           ),
         ],
         SizedBox(height: 22),
+        if (isAiAnalysisLoading) ...[
+          _AiAnalysisLoadingCard(),
+          SizedBox(height: 14),
+        ],
         if (aiAnalysis != null) ...[
-          SizedBox(height: 20),
           Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1142,10 +1159,130 @@ class _EncryptSetupContent extends StatelessWidget {
         ],
 
         _GradientCTAButton(
-          label: 'Start Encryption',
-          onPressed: onStartPressed,
+          label: isAiAnalysisLoading
+              ? 'Preparing security report...'
+              : 'Start Encryption',
+          onPressed: isAiAnalysisLoading ? null : onStartPressed,
         ),
       ],
+    );
+  }
+}
+
+class _AiAnalysisLoadingCard extends StatefulWidget {
+  const _AiAnalysisLoadingCard();
+
+  @override
+  State<_AiAnalysisLoadingCard> createState() =>
+      _AiAnalysisLoadingCardState();
+}
+
+class _AiAnalysisLoadingCardState extends State<_AiAnalysisLoadingCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 1100),
+    )..repeat(reverse: true);
+    _pulse = Tween<double>(begin: 0.72, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      label:
+          'Checking file security. Your AI advisor report will appear automatically.',
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) => Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 8 * (1 - value)),
+            child: child,
+          ),
+        ),
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: context.encryptoColors.textPrimary.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: context.encryptoColors.textPrimary.withValues(alpha: 0.10),
+            ),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                child: Row(
+                  children: [
+                    FadeTransition(
+                      opacity: _pulse,
+                      child: ScaleTransition(
+                        scale: _pulse,
+                        child: Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 21,
+                          color: Color(0xFF60A5FA),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Checking file security...',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
+                                ?.copyWith(
+                                  color: context.encryptoColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Your AI advisor report will appear automatically.',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: context.encryptoColors.textSecondary,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              LinearProgressIndicator(
+                minHeight: 2,
+                color: Color(0xFF60A5FA),
+                backgroundColor: Color(0xFF60A5FA).withValues(alpha: 0.12),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

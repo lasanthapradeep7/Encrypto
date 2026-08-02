@@ -211,6 +211,20 @@ class _EncryptionShellState extends State<EncryptionShell> {
     _selectTab(_utilityReturnIndex);
   }
 
+  void _handleSystemBack() {
+    if (_selectedIndex == 4 || _selectedIndex == 5) {
+      _closeUtilityPage();
+      return;
+    }
+
+    if (_selectedIndex == 6) {
+      _selectTab(_workflowReturnIndex);
+      return;
+    }
+
+    _selectTab(0);
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -221,20 +235,27 @@ class _EncryptionShellState extends State<EncryptionShell> {
             : AppTheme.light;
         return Theme(
           data: selectedTheme,
-          child: Builder(
-            builder: (context) => Scaffold(
-              backgroundColor: context.encryptoColors.background,
-              extendBody: true,
-              body: Stack(
-                children: [
-                  _Backdrop(),
-                  SafeArea(
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: IndexedStack(
-                            index: _selectedIndex,
-                            children: [
+          child: PopScope(
+            canPop: _selectedIndex == 0,
+            onPopInvokedWithResult: (didPop, result) {
+              if (!didPop) {
+                _handleSystemBack();
+              }
+            },
+            child: Builder(
+              builder: (context) => Scaffold(
+                backgroundColor: context.encryptoColors.background,
+                extendBody: true,
+                body: Stack(
+                  children: [
+                    _Backdrop(),
+                    SafeArea(
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: IndexedStack(
+                              index: _selectedIndex,
+                              children: [
                               VaultHomePage(
                                 key: ValueKey<int>(_vaultRefreshToken),
                                 onOpenWorkflow: () =>
@@ -284,18 +305,19 @@ class _EncryptionShellState extends State<EncryptionShell> {
                                 onOpenNotifications: () => _openUtilityPage(4),
                                 onOpenSettings: () => _openUtilityPage(5),
                               ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        if (_isPrimaryTab)
-                          EncryptionBottomNavigationBar(
-                            currentIndex: _selectedIndex,
-                            onItemSelected: _selectTab,
-                          ),
-                      ],
+                          if (_isPrimaryTab)
+                            EncryptionBottomNavigationBar(
+                              currentIndex: _selectedIndex,
+                              onItemSelected: _selectTab,
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

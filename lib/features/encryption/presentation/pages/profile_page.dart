@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:encrypto/core/theme/app_theme.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/encryption_chrome.dart';
 import 'package:encrypto/features/encryption/presentation/widgets/profile_dialogs.dart';
+import 'package:encrypto/features/encryption/presentation/pages/help_center_page.dart';
 import 'package:encrypto/services/session_service.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -24,7 +25,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  bool _biometricAuthentication = true;
   bool _cloudSync = false;
   //User details
   String _userName = 'Loading...';
@@ -93,9 +93,6 @@ class _ProfilePageState extends State<ProfilePage> {
       'Language': 'English is currently selected as the application language.',
       'Invite Friends':
           'Share Encrypto with friends and help them protect their files.',
-      'Help Center':
-          'Select a file, choose a security mode, and use Encrypt or Decrypt. '
-          'Failed login attempts can be viewed from the Security page.',
     };
 
     showDialog<void>(
@@ -187,14 +184,6 @@ class _ProfilePageState extends State<ProfilePage> {
                         onTap: _changePassword,
                       ),
                       _ProfileSwitchTile(
-                        icon: Icons.fingerprint_rounded,
-                        label: 'Biometric authentication',
-                        value: _biometricAuthentication,
-                        onChanged: (value) {
-                          setState(() => _biometricAuthentication = value);
-                        },
-                      ),
-                      _ProfileSwitchTile(
                         icon: Icons.cloud_sync_rounded,
                         label: 'Cloud sync',
                         value: _cloudSync,
@@ -216,7 +205,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       _ProfileActionTile(
                         icon: Icons.help_outline_rounded,
                         label: 'Help Center',
-                        onTap: () => _showComingSoon('Help Center'),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const HelpCenterPage(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

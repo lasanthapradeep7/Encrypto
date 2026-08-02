@@ -17,10 +17,8 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _biometricAuthentication = true;
   bool _notificationSound = true;
   bool _cloudSync = false;
-  bool _lockScreen = true;
 
   Future<void> _setDarkMode(bool enabled) async {
     await ThemeController.instance.setDarkMode(enabled);
@@ -158,13 +156,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         label: 'Change password',
                         onTap: _changePassword,
                       ),
-                      _SettingsSwitchRow(
-                        label: 'Biometric authentication',
-                        value: _biometricAuthentication,
-                        onChanged: (value) {
-                          setState(() => _biometricAuthentication = value);
-                        },
-                      ),
                       _SettingsActionRow(
                         label: 'Sign out',
                         destructive: true,
@@ -202,22 +193,11 @@ class _SettingsPageState extends State<SettingsPage> {
                         label: 'Key management',
                         onTap: () => _showComingSoon('Key management'),
                       ),
-                      _SettingsActionRow(
-                        label: 'Steganography',
-                        onTap: () => _showComingSoon('Steganography'),
-                      ),
                     ],
                   ),
                   SizedBox(height: 38),
                   _SettingsGroup(
                     children: [
-                      _SettingsSwitchRow(
-                        label: 'Lock Screen',
-                        value: _lockScreen,
-                        onChanged: (value) {
-                          setState(() => _lockScreen = value);
-                        },
-                      ),
                       _SettingsActionRow(
                         label: 'App language',
                         trailingText: 'English',
